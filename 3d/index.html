@@ -3,10 +3,88 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>3D Preview Demo</title>
-  <link rel="stylesheet" href="style.css">
+  <title>3D OBJ Preview</title>
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body, html {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+    }
+    #container {
+      width: 100%;
+      height: 100%;
+    }
+  </style>
 </head>
-<body>
-  <script type="module" src="main.js"></script>
+<body class="bg-gray-100 flex items-center justify-center">
+
+  <div id="container" class="w-full h-full max-w-7xl max-h-[90vh] rounded-lg shadow-lg bg-white"></div>
+
+  <script type="module">
+    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js';
+    import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.161.0/examples/jsm/controls/OrbitControls.js';
+    import { OBJLoader } from 'https://cdn.jsdelivr.net/npm/three@0.161.0/examples/jsm/loaders/OBJLoader.js';
+    import { MTLLoader } from 'https://cdn.jsdelivr.net/npm/three@0.161.0/examples/jsm/loaders/MTLLoader.js';
+
+    const container = document.getElementById('container');
+
+    // Scene
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xf0f0f0);
+
+    // Camera
+    const camera = new THREE.PerspectiveCamera(75, container.clientWidth/container.clientHeight, 0.1, 1000);
+    camera.position.set(0, 5, 10);
+
+    // Renderer
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    container.appendChild(renderer.domElement);
+
+    // Light
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+    dirLight.position.set(10, 10, 10);
+    scene.add(dirLight);
+    scene.add(new THREE.AmbientLight(0x404040, 1.5));
+
+    // Controls
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+
+    // Load MTL + OBJ
+    const mtlLoader = new MTLLoader();
+    mtlLoader.setPath('models/');
+    mtlLoader.load('Bangunan1.mtl', (materials) => {
+      materials.preload();
+
+      const objLoader = new OBJLoader();
+      objLoader.setMaterials(materials);
+      objLoader.setPath('models/');
+      objLoader.load('Bangunan1.obj', (object) => {
+        scene.add(object);
+        object.position.set(0,0,0);
+      });
+    }, undefined, (error) => {
+      console.error('Error loading MTL:', error);
+    });
+
+    // Animate
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    // Responsive
+    window.addEventListener('resize', () => {
+      camera.aspect = container.clientWidth / container.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(container.clientWidth, container.clientHeight);
+    });
+  </script>
 </body>
 </html>
