@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Composer App</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎵 Music Composer</h1>
+            <p>Buat musik dengan berbagai instrument</p>
+        </header>
+
+        <div class="controls">
+            <div class="instrument-selector">
+                <label for="instrument">Pilih Instrument:</label>
+                <select id="instrument">
+                    <option value="piano">Piano</option>
+                    <option value="guitar">Gitar</option>
+                    <option value="flute">Seruling</option>
+                    <option value="drums">Drum</option>
+                    <option value="violin">Biola</option>
+                </select>
+            </div>
+
+            <div class="volume-control">
+                <label for="volume">Volume:</label>
+                <input type="range" id="volume" min="0" max="100" value="70">
+                <span id="volume-value">70%</span>
+            </div>
+
+            <div class="bpm-control">
+                <label for="bpm">Tempo (BPM):</label>
+                <input type="range" id="bpm" min="40" max="200" value="120">
+                <span id="bpm-value">120</span>
+            </div>
+
+            <button id="clear-btn" class="btn secondary">Hapus Semua</button>
+            <button id="play-btn" class="btn primary">▶ Putar</button>
+            <button id="stop-btn" class="btn secondary">⏹ Berhenti</button>
+        </div>
+
+        <div class="piano-keyboard">
+            <div class="keys" id="keyboard">
+                <!-- Keys akan di-generate oleh JavaScript -->
+            </div>
+        </div>
+
+        <div class="sequencer">
+            <h3>Sequencer</h3>
+            <div class="track" id="sequencer-track">
+                <!-- Sequencer grid akan di-generate oleh JavaScript -->
+            </div>
+        </div>
+
+        <div class="recording">
+            <button id="record-btn" class="btn danger">● Rekam</button>
+            <button id="save-btn" class="btn success">💾 Simpan</button>
+            <button id="load-btn" class="btn info">📂 Load</button>
+        </div>
+
+        <div class="composition-list">
+            <h3>Komposisi Tersimpan</h3>
+            <ul id="saved-compositions"></ul>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

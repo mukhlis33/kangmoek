@@ -1,0 +1,255 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+header h1 {
+    font-size: 3em;
+    margin-bottom: 10px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 20px;
+    border-radius: 15px;
+}
+
+.instrument-selector, .volume-control, .bpm-control {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+select, input[type="range"] {
+    padding: 8px;
+    border: none;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.9);
+}
+
+.btn {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.btn.primary {
+    background: #4CAF50;
+    color: white;
+}
+
+.btn.secondary {
+    background: #2196F3;
+    color: white;
+}
+
+.btn.danger {
+    background: #f44336;
+    color: white;
+}
+
+.btn.success {
+    background: #8BC34A;
+    color: white;
+}
+
+.btn.info {
+    background: #00BCD4;
+    color: white;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.piano-keyboard {
+    margin-bottom: 30px;
+}
+
+.keys {
+    display: flex;
+    justify-content: center;
+    height: 150px;
+    position: relative;
+}
+
+.key {
+    border: 1px solid #000;
+    border-radius: 0 0 5px 5px;
+    cursor: pointer;
+    transition: all 0.1s ease;
+    position: relative;
+}
+
+.key.white {
+    width: 40px;
+    height: 150px;
+    background: white;
+    z-index: 1;
+    margin: 0 1px;
+}
+
+.key.black {
+    width: 28px;
+    height: 90px;
+    background: #333;
+    margin: 0 -14px;
+    z-index: 2;
+}
+
+.key.active {
+    transform: translateY(2px);
+    box-shadow: inset 0 -2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.key.white.active {
+    background: #f0f0f0;
+}
+
+.key.black.active {
+    background: #666;
+}
+
+.sequencer {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 20px;
+    border-radius: 15px;
+    margin-bottom: 30px;
+}
+
+.sequencer h3 {
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.track {
+    display: grid;
+    grid-template-columns: repeat(16, 1fr);
+    gap: 4px;
+    margin-bottom: 10px;
+}
+
+.step {
+    aspect-ratio: 1;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.step.active {
+    background: #4CAF50;
+    transform: scale(1.1);
+}
+
+.step.current {
+    box-shadow: 0 0 10px #ffeb3b;
+}
+
+.recording {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 30px;
+}
+
+.composition-list {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 20px;
+    border-radius: 15px;
+}
+
+.composition-list h3 {
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+#saved-compositions {
+    list-style: none;
+}
+
+#saved-compositions li {
+    background: rgba(255, 255, 255, 0.2);
+    margin: 5px 0;
+    padding: 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+#saved-compositions li:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.recording .btn {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 15px;
+    }
+    
+    header h1 {
+        font-size: 2em;
+    }
+    
+    .controls {
+        grid-template-columns: 1fr;
+    }
+    
+    .keys {
+        height: 120px;
+    }
+    
+    .key.white {
+        width: 30px;
+        height: 120px;
+    }
+    
+    .key.black {
+        width: 20px;
+        height: 70px;
+        margin: 0 -10px;
+    }
+}

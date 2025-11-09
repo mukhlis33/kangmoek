@@ -1,0 +1,591 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Generator Arab Pegon</title>
+<link href="https://fonts.googleapis.com/css2?family=Amiri&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f8fa; --card:#fffef7; --text:#0b1220; --muted:#556; --accent:#0b6efd; --toolbar-bg:#ffffff; --shadow:0 6px 18px rgba(11,18,32,0.08);
+}
+[data-theme="dark"]{
+  --bg:#071122; --card:#0b1220; --text:#e6eef8; --muted:#9fb0c4; --accent:#ffd166; --toolbar-bg:#071022; --shadow:0 10px 30px rgba(0,0,0,0.6);
+}
+*{box-sizing:border-box}
+body{margin:0;padding:18px;font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center}
+header{width:100%;max-width:1000px;display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:12px}
+.title{display:flex;flex-direction:column}
+h1{font-size:18px;margin:0}
+.small-muted{font-size:12px;color:var(--muted)}
+.controls-top{display:flex;gap:8px;align-items:center}
+.icon-btn{background:transparent;border:0;padding:8px;border-radius:8px;cursor:pointer;color:var(--muted)}
+.icon-btn:focus{outline:2px solid rgba(11,110,253,0.15)}
+main{width:100%;max-width:1000px;display:flex;flex-direction:column;gap:12px}
+.grid{display:flex;gap:16px;flex-wrap:wrap;justify-content:space-between}
+.col{flex:1 1 420px;min-width:260px;display:flex;flex-direction:column;gap:8px}
+textarea,input[type="text"]{width:100%;padding:12px;border-radius:10px;border:1px solid rgba(11,18,32,0.06);font-size:16px;background:#fff}
+textarea{min-height:160px;resize:vertical}
+.output-box{position:relative;border-radius:10px;padding:12px;background:var(--card);min-height:160px;border:1px solid rgba(11,18,32,0.06);overflow:auto;font-family:'Amiri', serif;direction:rtl;unicode-bidi:embed;font-size:22px;line-height:1.6}
+.controls-row{display:flex;gap:8px;align-items:center}
+.btn{padding:8px 12px;border-radius:8px;border:1px solid rgba(11,18,32,0.06);background:transparent;cursor:pointer}
+.btn.primary{background:var(--accent);color:white;border:none}
+.info-link{color:var(--accent);text-decoration:underline}
+
+.pegon-word{cursor:pointer;color:var(--accent);text-decoration:none} /* removed underline */
+.pegon-word:hover{text-decoration:underline}
+
+/* modal backdrop */
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:none;align-items:center;justify-content:center;z-index:2000;padding:12px}
+.modal{background:var(--card);padding:14px;border-radius:10px;width:100%;max-width:820px;box-shadow:var(--shadow);max-height:86vh;overflow:auto;color:var(--text)}
+.modal h3{margin:0 0 8px 0}
+.options{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.opt-btn{padding:8px 10px;border-radius:8px;background:rgba(11,18,32,0.04);border:1px solid rgba(11,18,32,0.04);cursor:pointer}
+.opt-btn:hover{background:rgba(11,18,32,0.06)}
+
+/* toolbar */
+#toolbar{position:fixed;left:10px;right:10px;bottom:8px;display:flex;gap:8px;padding:8px;background:var(--toolbar-bg);border-radius:12px;box-shadow:var(--shadow);overflow-x:auto;z-index:1500;align-items:center;display:none}
+#toolbar button{flex:none;min-width:44px;padding:8px;border-radius:8px;border:1px solid rgba(11,18,32,0.06);background:transparent;font-size:18px;cursor:pointer}
+#toolbar button:hover{background:rgba(11,18,32,0.04)}
+
+/* panel perbaikan / tulis singkat */
+.panel{position:fixed;right:12px;bottom:96px;width:360px;max-width:92%;background:var(--card);border-radius:12px;box-shadow:var(--shadow);padding:12px;z-index:1600;display:none;flex-direction:column;gap:8px}
+.panel .title{display:flex;justify-content:space-between;align-items:center}
+.panel .keyboard{display:flex;flex-wrap:wrap;gap:6px;max-height:220px;overflow:auto;padding-top:6px}
+.panel .kbd-btn{padding:8px;min-width:44px;border-radius:8px;border:1px solid rgba(11,18,32,0.06);background:transparent;cursor:pointer;font-size:18px}
+.panel .kbd-btn:hover{background:rgba(11,18,32,0.04)}
+
+/* small responsive spacing room for toolbar */
+@media (max-width:700px){body{padding-bottom:120px}}
+
+/* small notes text */
+.note{font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body data-theme="light">
+
+<header>
+  <div class="title">
+    <h1>Generator Arab Pegon by Kang Moek</h1>
+    <div class="small-muted">Realtime Latin → Pegon</div>
+  </div>
+
+  <div class="controls-top">
+    <button class="icon-btn" id="infoBtn" title="Informasi (i)">ℹ️</button>
+    <button class="icon-btn" id="themeToggle" title="Mode Gelap/Terang">🌙</button>
+  </div>
+</header>
+
+<main>
+  <div class="grid">
+    <div class="col">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div><strong>Input (Latin)</strong><div class="small-muted">Ketik Bahasa Indonesia / Jawa</div></div>
+        <div class="small-muted">Toolbar Arab muncul pada <em>Tulis Singkat</em></div>
+      </div>
+      <textarea id="latin" placeholder="tulisen nng kene, misal: Witing mulya jalaran wani rekasa"></textarea>
+      <div class="controls-row">
+        <button id="tulisSingkat" class="btn">Tulis Singkat</button>
+        <button id="copyAll" class="btn">Salin Hasil</button>
+      </div>
+      <div class="note" left:12px>Tip: 
+          <p>klik kata di hasil (kanan) untuk melihat opsi perbaikan / variasi setelah selesai menulis</p>
+          <p>untuk penulisan e pepet/é hilangkan huruf e nya, contoh "péparing" (فيفاريڠ) &rarr; "pparing" (ففاريڠ)</p>
+      </div>
+    </div>
+
+    <div class="col">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div><strong>Output (Pegon)</strong><div class="small-muted">Klik kata untuk perbaikan / pilihan</div></div>
+        <div class="small-muted">Font: Amiri </div>
+      </div>
+      <div id="output" class="output-box" tabindex="0"></div>
+      <div style="margin-top:8px">
+        <div class="note">Generator Arab Pegon adalah aplikasi yang berfungsi untuk mengonversi teks Latin (bahasa Indonesia atau Jawa) menjadi tulisan Arab Pegon secara otomatis.</div>
+        <div style="margin-top:6px"><a class="info-link" href="https://kangmoek.gt.tc" target="_blank">Fitur lainnya dari Kang Moek</a></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Permutation / options modal (for e / permutations / apostrophe choices) -->
+<div class="modal-backdrop" id="permModal">
+  <div class="modal" role="dialog" aria-modal="true">
+    <h3>Pilihan perbaikan / variasi</h3>
+    <div id="permTarget" style="font-size:22px;text-align:right;direction:rtl;margin-bottom:6px"></div>
+    <div id="permOptions" class="options"></div>
+    <div style="display:flex;justify-content:flex-end;margin-top:8px">
+      <button id="permClose" class="opt-btn">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<!-- Info modal -->
+<div class="modal-backdrop" id="infoModal">
+  <div class="modal">
+    <h3>Informasi — Generator Arab Pegon</h3>
+    <p>Generator Arab Pegon adalah aplikasi yang berfungsi untuk mengonversi teks Latin (bahasa Indonesia atau Jawa) menjadi tulisan Arab Pegon secara otomatis.</p>
+    <p><strong>Fungsi pokok:</strong> transliterasi realtime, perbaikan kata/huruf, pilihan alternatif e pepet/é, dan panel perbaikan manual dengan keyboard Arab.</p>
+    <p><strong>Cara kerja singkat:</strong> input Latin &rarr; aturan transliterasi (gabungan: ng, ny; huruf khusus: g,c; vokal awal: i/u/e/o ditangani khusus) &rarr; keluaran Pegon. Klik kata di hasil untuk membuka pilihan variasi.</p>
+    <p><strong>Tip Singkat:</strong>untuk penulisan e pepet/é hilangkan hurufnya, contoh jika "péparing" "فيفاريڠ" tuliskan menjadi &rarr; "pparing" "ففاريڠ"</p>
+
+    <h4>Tabel peta huruf (singkat)</h4>
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <tr style="background:#f8f9fa;font-weight:bold;text-align:center">
+        <th style="border:1px solid rgba(11,18,32,0.06);padding:6px">Latin</th>
+        <th style="border:1px solid rgba(11,18,32,0.06);padding:6px">Pegon</th>
+        <th style="border:1px solid rgba(11,18,32,0.06);padding:6px">Keterangan</th>
+      </tr>
+
+      <!-- Huruf dasar -->
+      <tr><td>a</td><td>ا</td><td>Vokal a</td></tr>
+      <tr><td>b</td><td>ب</td><td>Konsonan ba</td></tr>
+      <tr><td>c</td><td>چ</td><td>Konsonan ca</td></tr>
+      <tr><td>d</td><td>د</td><td>Konsonan da</td></tr>
+      <tr><td>e</td><td>ي</td><td>Vokal e (é/è; pepet kadang tidak ditulis)</td></tr>
+      <tr><td>f</td><td>ف</td><td>Konsonan fa</td></tr>
+      <tr><td>g</td><td>ڮ</td><td>Konsonan ga</td></tr>
+      <tr><td>h</td><td>ه</td><td>Konsonan ha</td></tr>
+      <tr><td>i</td><td>ي</td><td>Vokal i</td></tr>
+      <tr><td>j</td><td>ج</td><td>Konsonan ja</td></tr>
+      <tr><td>k</td><td>ك</td><td>Konsonan ka</td></tr>
+      <tr><td>l</td><td>ل</td><td>Konsonan la</td></tr>
+      <tr><td>m</td><td>م</td><td>Konsonan ma</td></tr>
+      <tr><td>n</td><td>ن</td><td>Konsonan na</td></tr>
+      <tr><td>o</td><td>و</td><td>Vokal o</td></tr>
+      <tr><td>p</td><td>ڤ</td><td>Konsonan pa</td></tr>
+      <tr><td>q</td><td>ق</td><td>Konsonan qa</td></tr>
+      <tr><td>r</td><td>ر</td><td>Konsonan ra</td></tr>
+      <tr><td>s</td><td>س</td><td>Konsonan sa</td></tr>
+      <tr><td>t</td><td>ت</td><td>Konsonan ta</td></tr>
+      <tr><td>u</td><td>و</td><td>Vokal u</td></tr>
+      <tr><td>v</td><td>ڤ</td><td>Sering disamakan dengan p</td></tr>
+      <tr><td>w</td><td>و</td><td>Konsonan wa</td></tr>
+      <tr><td>x</td><td>كس</td><td>Gabungan “k” + “s”</td></tr>
+      <tr><td>y</td><td>ي</td><td>Konsonan ya</td></tr>
+      <tr><td>z</td><td>ز</td><td>Konsonan za</td></tr>
+
+      <!-- Kombinasi khusus -->
+      <tr style="background:#f8f9fa;font-weight:bold;text-align:center">
+        <td colspan="3" style="border:1px solid rgba(11,18,32,0.06);padding:6px">Gabungan Huruf Khusus</td>
+      </tr>
+      <tr><td>ng</td><td>ڠ</td><td>Konsonan nga</td></tr>
+      <tr><td>ny</td><td>ۑ</td><td>Konsonan nya</td></tr>
+      <tr><td>sy</td><td>ش</td><td>Syin (sy)</td></tr>
+      <tr><td>kh</td><td>خ</td><td>Kha (kh)</td></tr>
+      <tr><td>th</td><td>ط</td><td>Tha (t tebal)</td></tr>
+      <tr><td>dh</td><td>ذ</td><td>Dzal (dz)</td></tr>
+      <tr><td>sh</td><td>ص</td><td>Shad (s tebal)</td></tr>
+      <tr><td>zh</td><td>ظ</td><td>Zha (z tebal)</td></tr>
+      <tr><td>ch</td><td>ح</td><td>Cha (c tebal)</td></tr>
+
+      <!-- Vokal di awal kata -->
+      <tr style="background:#f8f9fa;font-weight:bold;text-align:center">
+        <td colspan="3" style="border:1px solid rgba(11,18,32,0.06);padding:6px">Vokal di Awal Kata</td>
+      </tr>
+      <tr><td>a</td><td>ا</td><td>Contoh: anak → اناك</td></tr>
+      <tr><td>i</td><td>اي</td><td>Contoh: ibu → ايبو</td></tr>
+      <tr><td>u</td><td>او</td><td>Contoh: ular → اولار</td></tr>
+      <tr><td>e</td><td>اي</td><td>Contoh: enak → ايناك</td></tr>
+      <tr><td>o</td><td>او</td><td>Contoh: orang → اوراڠ</td></tr>
+    </table>
+
+
+
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px">
+      <button id="infoClose" class="opt-btn">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<!-- Panel perbaikan / Tulis Singkat -->
+<div class="panel" id="panel">
+  <div class="title"><strong>Tulis Singkat</strong><button id="closePanel" class="icon-btn">✕</button></div>
+  <input id="panelEdit" type="text" placeholder="Ketik Pegon singkat atau tempel hasil..." />
+  <div style="display:flex;gap:8px">
+    <button id="insertToInput" class="btn">Masukkan ke Input</button>
+    <button id="panelCopy" class="btn primary">Salin</button>
+  </div>
+  <div style="font-size:13px;color:var(--muted)">Keyboard Arab (ketuk untuk memasukkan ke kotak Tulis Singkat)</div>
+  <div class="keyboard" id="panelKeyboard" style="display:flex;flex-wrap:wrap;gap:6px;max-height:180px;overflow:auto;margin-top:6px"></div>
+</div>
+
+<!-- toolbar bottom -->
+<div id="toolbar" aria-hidden="true"></div>
+
+<script>
+/* ======== Data transliteration ======== */
+const singleMap = {
+  'a':'ا','b':'ب','c':'چ','d':'د','e':'ي','f':'ف','g':'ڮ','h':'ه','i':'ي','j':'ج',
+  'k':'ك','l':'ل','m':'م','n':'ن','o':'و','p':'ڤ','q':'ق','r':'ر','s':'س','t':'ت',
+  'u':'و','v':'ڤ','w':'و','x':'كس','y':'ي','z':'ز','é':'ٙ','l':'ل','m':'م','n':'ن',
+  '1':'١',
+  '2':'٢',
+  '3':'٣',
+  '4':'٤',
+  '5':'٥',
+  '6':'٦',
+  '7':'٧',
+  '8':'٨',
+  '9':'٩',
+  '0':'٠'
+    
+};
+const comboMap = {'ng':'ڠ','ny':'ۑ','sy':'ش','kh':'خ','th':'ط','dh':'ذ','sh':'ص','zh':'ظ','ch':'ح','eu':'ؤ','ui':'ووي','ua':'ووا','iu':'ييو','oe':'ووي','owe':'ووي'};
+
+const specialWords = {
+  'kang':['كڠ','كاڠ'],
+  'kanggo':['كاڠڮو','كڠ ڮو','كاڠڮو','كڠو'],
+  'kango':['كاڠڮو','كڠ ڮو','كاڠڮو','كڠو'],
+  'ing':['اڠ','ايڠ'],
+  'ingkang':['اڠكڠ','ايڠكاڠ'],
+  'ingsun':['إڠسون','إڠسن'],
+  'ingatase':['اڠاتسي','إڠتاسي','إڠتسي'],
+  'ingdalem':['اڠدالم'],
+  'wis':['ووس','ويس'],
+  'alloh':['الله'],
+  'allah':['الله'],
+  'allohuma':['اللهمّ'],'allohumma':['اللهمّ'],'alohuma':['اللهمّ'],
+  'muhammad':['محمّد'],'muhamad':['محمّد'],'muchammad':['محمّد'],'muchamad':['محمّد'],
+  'ahmad':['احمد'],'akhmad':['احمد'],'achmad':['احمد'],
+  'muhlis':['مخلص'],'mukhlis':['مخلص'],'muhlish':['مخلص'],'mukhlish':['مخلص'],'muchlis':['مخلص'],'muklis':['مخلص'],
+};
+
+const ngokoAlus = {'kula':'كولو','aku':'اكو','kowe':'كوو'}
+
+/* ======== Utilities ======== */
+function esc(s){ return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+
+function transliterateWord(word){
+  if(!word) return '';
+  const lw = word.toLowerCase();
+  if(specialWords[lw]) return specialWords[lw][0];
+  if(ngokoAlus[lw]) return ngokoAlus[lw];
+  let t = lw;
+  // leading vowel handling: mark sentinel _
+  if(/^[ieuo]/.test(t)){
+    t = '_'+t;
+  }
+  for(let k in comboMap) t = t.replaceAll(k, comboMap[k]);
+  let out = '';
+  for(let i=0;i<t.length;i++){
+    const ch = t[i];
+    if(ch === '_') continue;
+    if(i>0 && t[i-1] === '_'){
+      if(ch==='i' || ch==='e'){ out += 'اي'; continue; }
+      if(ch==='u' || ch==='o'){ out += 'او'; continue; }
+      if(ch==='a'){ out += 'ا'; continue; }
+    }
+    out += singleMap[ch] || ch;
+  }
+  return out;
+}
+
+function transliterateText(text){
+  if(!text || text.trim()==='') return '';
+  // Keep punctuation; split on whitespace
+  const parts = text.split(/\s+/).filter(Boolean);
+  const mapped = parts.map(p=>{
+    const arab = transliterateWord(p);
+    return `<span class="pegon-word" data-latin="${esc(p)}">${esc(arab)}</span>`;
+  });
+  return mapped.join(' ');
+}
+
+/* generate permutations by toggling ي occurrences (for e choices), capped */
+function genYPermutations(arab){
+  const chars = Array.from(arab);
+  const idxs = chars.map((c,i)=> c==='ي' ? i : -1).filter(i=>i>=0);
+  if(idxs.length===0) return [arab];
+  const limit = Math.min(idxs.length, 12);
+  const maxComb = 1<<limit;
+  const out = new Set();
+  for(let m=0;m<maxComb && out.size<128;m++){
+    const arr = chars.slice();
+    for(let k=0;k<limit;k++){
+      if(((m>>k)&1) === 0) arr[idxs[k]] = ''; else arr[idxs[k]] = 'ي';
+    }
+    out.add(arr.join('').replaceAll(/\u200c/g,''));
+  }
+  return Array.from(out);
+}
+
+/* apostrophe handling: given latin word and arab transliteration,
+   if latin contains vowel' pattern (a', i', u', e', o'), produce options mixing hamza/ء etc.
+   return array of {label, arab}
+*/
+function genApostropheOptions(latin, arab){
+  // detect if latin has pattern vowel' e.g. a', i' etc.
+  const match = latin.match(/([aeiou])'$/i);
+  if(!match) return null;
+  const v = match[1].toLowerCase();
+  // base arab without final (we assume final vowel already included)
+  const opts = [];
+  // produce options per mapping:
+  // a' -> اء or أ
+  // i' -> يء or ئ
+  // u' -> وء or ؤ
+  // e' -> يء or ئ
+  // o' -> وء or ؤ
+  const map = {
+    'a':[ 'ء','أ' ],
+    'i':[ 'يء','ئ' ],
+    'u':[ 'وء','ؤ' ],
+    'e':[ 'يء','ئ' ],
+    'o':[ 'وء','ؤ' ]
+  };
+  const choices = map[v] || [];
+  // Try to replace last occurrence of appropriate tail in arab: simplest approach: append choices as alternatives
+  for(const ch of choices){
+    opts.push({label: ch, arab: (arab + ch)});
+  }
+  // also include option with just apostrophe char as ASCII (simulate leaving as is)
+  opts.unshift({label:"'", arab: arab + "'" });
+  return opts;
+}
+
+/* apply replacement for a span element */
+function replaceSpanContent(span, newAr){
+  span.textContent = newAr;
+}
+
+/* ======== DOM bindings ======== */
+const latin = document.getElementById('latin');
+const output = document.getElementById('output');
+const permModal = document.getElementById('permModal');
+const permTarget = document.getElementById('permTarget');
+const permOptions = document.getElementById('permOptions');
+const permClose = document.getElementById('permClose');
+
+const infoBtn = document.getElementById('infoBtn');
+const infoModal = document.getElementById('infoModal');
+const infoClose = document.getElementById('infoClose');
+
+const toolbar = document.getElementById('toolbar');
+const panel = document.getElementById('panel');
+const panelEdit = document.getElementById('panelEdit');
+const panelKeyboard = document.getElementById('panelKeyboard');
+const panelCopy = document.getElementById('panelCopy');
+const insertToInput = document.getElementById('insertToInput');
+const closePanel = document.getElementById('closePanel');
+
+const tuliSingkatBtn = document.getElementById('tulisSingkat');
+const copyAllBtn = document.getElementById('copyAll');
+const themeToggle = document.getElementById('themeToggle');
+
+let curSpan = null;
+let perbaikanMode = false;
+
+/* render function */
+function render(){
+  output.innerHTML = transliterateText(latin.value);
+}
+
+/* initial render */
+window.addEventListener('load', render);
+latin.addEventListener('input', render);
+
+/* click on pegon word: open permutations / apostrophe choices */
+output.addEventListener('click', (ev)=>{
+  const sp = ev.target.closest('.pegon-word');
+  if(!sp){
+    return;
+  }
+  curSpan = sp;
+  const latinWord = sp.dataset.latin || '';
+  const arabWord = sp.textContent || '';
+  // build options: apostrophe options first (if detected), then Y-permutations, then specialWords alternatives (if any)
+  permTarget.textContent = arabWord;
+  permOptions.innerHTML = '';
+  // apostrophe
+  const apostOpts = genApostropheOptions(latinWord, arabWord);
+  if(apostOpts){
+    apostOpts.forEach(o=>{
+      const b = document.createElement('button');
+      b.className='opt-btn';
+      b.textContent = o.arab;
+      b.title = "Pilih opsi "+o.label;
+      b.addEventListener('click', ()=>{
+        replaceSpanContent(curSpan, o.arab);
+        permModal.style.display='none';
+      });
+      permOptions.appendChild(b);
+    });
+  }
+  // y permutations for e pepet/taling choices (if arab has ي)
+  const yPerms = genYPermutations(arabWord);
+  if(yPerms && yPerms.length>0){
+    // if we already added some options, add separator
+    yPerms.forEach(p=>{
+      const b = document.createElement('button');
+      b.className='opt-btn';
+      b.textContent = p;
+      b.addEventListener('click', ()=>{ replaceSpanContent(curSpan, p); permModal.style.display='none'; });
+      permOptions.appendChild(b);
+    });
+  }
+  // specialWords alternatives (based on latin)
+  const latinKey = (sp.dataset.latin || '').toLowerCase();
+  if(specialWords[latinKey]){
+    specialWords[latinKey].forEach(s=>{
+      const b = document.createElement('button');
+      b.className='opt-btn';
+      b.textContent = s;
+      b.addEventListener('click', ()=>{ replaceSpanContent(curSpan, s); permModal.style.display='none'; });
+      permOptions.appendChild(b);
+    });
+  }
+  // fallback original option
+  if(permOptions.children.length===0){
+    const b = document.createElement('button');
+    b.className='opt-btn';
+    b.textContent = arabWord;
+    b.addEventListener('click', ()=>{ permModal.style.display='none'; });
+    permOptions.appendChild(b);
+  }
+  permModal.style.display='flex';
+});
+
+/* perm close */
+permClose.addEventListener('click', ()=> permModal.style.display='none');
+
+/* info modal */
+infoBtn.addEventListener('click', ()=> infoModal.style.display='flex');
+infoClose.addEventListener('click', ()=> infoModal.style.display='none');
+
+/* copy whole output button */
+copyAllBtn.addEventListener('click', ()=>{
+  const txt = output.textContent || '';
+  navigator.clipboard.writeText(txt).then(()=> alert('Hasil Pegon disalin ke clipboard'));
+});
+
+/* Tulis Singkat toggles panel + toolbar */
+tuliSingkatBtn.addEventListener('click', ()=>{
+  const show = panel.style.display !== 'flex';
+  panel.style.display = show ? 'flex' : 'none';
+  toolbar.style.display = show ? 'flex' : 'none';
+  perbaikanMode = show;
+  if(show) panelEdit.focus();
+});
+
+/* panel close / insert / copy */
+closePanel.addEventListener('click', ()=>{
+  panel.style.display='none'; toolbar.style.display='none'; perbaikanMode=false;
+});
+insertToInput.addEventListener('click', ()=>{
+  // insert panelEdit content into latin input at caret
+  insertAtCursor(latin, panelEdit.value);
+  latin.dispatchEvent(new Event('input'));
+});
+panelCopy.addEventListener('click', ()=>{
+  // Salin: copy panelEdit text if any, else copy full output
+  const tocopy = panelEdit.value.trim() || output.textContent || '';
+  navigator.clipboard.writeText(tocopy).then(()=> alert('Teks disalin ke clipboard'));
+});
+
+/* panel keyboard buttons */
+const panelKeys = ['اي','او','ڠ','ۑ','چ','ڮ','ى','لا','ء','أ','إ','ؤ','ئ','ا','ب','ت','ث','ج','ح','خ','د','ذ','ر','ز','س','ش','ص','ض','ط','ظ','ع','غ','ف','ق','ك','ل','م','ن','ه','و','ي'];
+const panelKeyboardEl = document.getElementById('panelKeyboard');
+panelKeys.forEach(k=>{
+  const b = document.createElement('button');
+  b.className='kbd-btn';
+  b.textContent = k;
+  b.addEventListener('click', ()=> insertAtCursor(panelEdit, k));
+  panelKeyboardEl.appendChild(b);
+});
+
+/* toolbar bottom buttons (same keys) */
+const toolbarKeys = ['اي','او','ڠ','ۑ','چ','ڮ','ى','لا','ء','أ','إ','ؤ','ئ','ا','ب','ت','ث','ج','ح','خ','د','ذ','ر','ز','س','ش','ص','ض','ط','ظ','ع','غ','ف','ق','ك','ل','م','ن','ه','و','ي'];
+toolbarKeys.forEach(k=>{
+  const b = document.createElement('button');
+  b.type='button';
+  b.textContent = k;
+  b.addEventListener('click', ()=>{
+    if(perbaikanMode && panel.style.display==='flex'){
+      insertAtCursor(panelEdit, k);
+    } else {
+      insertAtCursor(latin, k);
+      latin.dispatchEvent(new Event('input'));
+    }
+  });
+  toolbar.appendChild(b);
+});
+
+/* insertion helper */
+function insertAtCursor(el, text){
+  el.focus();
+  if(typeof el.selectionStart === 'number'){
+    const start = el.selectionStart, end = el.selectionEnd;
+    const val = el.value;
+    el.value = val.slice(0,start) + text + val.slice(end);
+    el.setSelectionRange(start + text.length, start + text.length);
+  } else {
+    el.value += text;
+  }
+}
+
+/* theme toggle */
+const body = document.body;
+const saved = localStorage.getItem('pegon-theme');
+if(saved) body.setAttribute('data-theme', saved);
+function toggleTheme(){
+  const cur = body.getAttribute('data-theme') || 'light';
+  const next = cur === 'light' ? 'dark' : 'light';
+  body.setAttribute('data-theme', next);
+  localStorage.setItem('pegon-theme', next);
+}
+themeToggle.addEventListener('click', toggleTheme);
+
+/* hide modals on ESC */
+document.addEventListener('keydown', (e)=>{
+  if(e.key==='Escape'){
+    permModal.style.display='none';
+    infoModal.style.display='none';
+    panel.style.display='none';
+    toolbar.style.display='none';
+    perbaikanMode=false;
+  }
+});
+</script>
+</body>
+    <footer class="footer">
+      <div class="footer-content">
+        <p>© <?= date('Y') ?> 
+          <a href="https://kangmoek.gt.tc" target="_blank" rel="noopener noreferrer">
+            <strong>Kang Moek Tools</strong>
+          </a>
+        </p>
+        <p class="footer-sub">Dibuat oleh Kang Moek</p>
+      </div>
+    </footer>
+
+    <style>
+      /* hanya memengaruhi footer */
+      .footer {
+        position: relative;
+        text-align: center;
+        padding: 14px 0;
+        margin-top: 40px;
+        border-top: 1px solid rgba(0, 0, 0, 0.1);
+        font-family: 'Poppins', sans-serif;
+        color: #555;
+        background: transparent;
+      }
+
+      .footer a {
+        color: #1d4ed8; /* biru lembut */
+        text-decoration: none;
+        transition: color 0.3s ease;
+      }
+
+      .footer a:hover {
+        color: #2563eb; /* biru sedikit lebih terang saat hover */
+      }
+
+      .footer-sub {
+        font-size: 0.85rem;
+        opacity: 0.8;
+      }
+    </style>
+
+</html>

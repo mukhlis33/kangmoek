@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Scanner LJK - Demo</title>
+<style>
+  body { font-family: system-ui, -apple-system, Arial; padding: 18px; max-width: 980px; margin: auto; }
+  h1 { margin-bottom: 6px; }
+  .row { display:flex; gap:12px; align-items:center; margin-bottom:12px; flex-wrap:wrap; }
+  #canvasOut { max-width: 100%; border:1px solid #ddd; }
+  .info { font-size:0.95rem; color:#333; }
+  label { display:inline-block; margin-right:8px; }
+  .result { margin-top:12px; padding:12px; border-radius:8px; background:#f6f9ff; }
+  input, button, select { padding:8px 10px; font-size:1rem; }
+  .small { font-size:0.9rem; color:#666; }
+</style>
+</head>
+<body>
+
+<h1>Scanner LJK (Demo)</h1>
+<div class="info">Upload foto LJK atau gunakan camera. Template LJK sebaiknya konsisten (kotak/lingkar jawaban teratur).</div>
+
+<div class="row">
+  <input type="file" id="fileInput" accept="image/*" />
+  <button id="cameraBtn">Buka Kamera</button>
+  <button id="processBtn">Proses & Grade</button>
+  <select id="modeSelect">
+    <option value="auto">Deteksi Otomatis (default)</option>
+    <option value="fixed">Gunakan Grid Tetap</option>
+  </select>
+</div>
+
+<div class="row">
+  <video id="video" width="320" height="240" autoplay style="display:none;border:1px solid #ccc"></video>
+  <canvas id="canvasOut" width="960" height="1280"></canvas>
+</div>
+
+<div class="row small">
+  <label>Jumlah soal:</label><input id="numQ" type="number" value="10" min="1" style="width:90px" />
+  <label>Pilihan per soal:</label><input id="choices" type="number" value="4" min="2" style="width:70px" />
+</div>
+
+<div class="row small">
+  <label>Kunci (format JSON array, contoh: [1,0,2,...])</label>
+</div>
+<textarea id="answerKey" rows="2" style="width:100%;">[1,0,2,3,1,0,2,1,3,0]</textarea>
+
+<div id="result" class="result" style="display:none"></div>
+
+<!-- OpenCV.js CDN (official build) -->
+<script async src="https://docs.opencv.org/4.x/opencv.js" onload="onOpenCvReady();" ></script>
+
+<script>
+let videoStream = null;
+let srcMat = null;
+const canvas = document.getElementById('canvasOut');
+const ctx = canvas.getContext('2d');
+const fileInput = document.getElementById('fileInput');
+const processBtn = document.getElementById('processBtn');
+const cameraBtn = document.getElementById('cameraBtn');
+const video = document.getElementById('video');
+const modeSelect = document.getElementById('modeSelect');
+const resultDiv = document.getElementById('result');
+
+fileInput.addEventListener('change', handleFile);
+cameraBtn.addEventListener('click', startCamera);
+processBtn.addEventListener('click', runProcess);
+
+function onOpenCvReady() {
+  console.log('OpenCV loaded');
+  // initialize empty srcMat
+  srcMat = null;
+}
+
+function handleFile(e){
+  const f = e.target.files[0];
+  if(!f) return;
+  const img = new Image();
+  img.onload = () => {
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    ctx.drawImage(img,0,0);
+  };
+  img.src = URL.createObjectURL(f);
+}
+
+async function startCamera(){
+  if(videoStream){ stopCamera(); return; }
+  try{
+    video.style.display = 'block';
+    const s = await navigator.mediaDevices.getUserMedia({ video:true, audio:false });
+    videoStream = s;
+    video.srcObject = s;
+    cameraBtn.textContent = 'Stop Kamera';
+    // snapshot on click to canvas
+    video.addEventListener('click', () => {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    }, { once:false });
+  } catch(err){
+    alert('Tidak bisa membuka kamera: '+err);
+  }
+}
+
+function stopCamera(){
+  if(videoStream){
+    videoStream.getTracks().forEach(t=>t.stop());
+    video.style.display = 'none';
+    cameraBtn.textContent = 'Buka Kamera';
+    videoStream = null;
+  }
+}
+
+// main processing
+function runProcess(){
+  if(typeof cv === 'undefined'){ alert('OpenCV belum siap. Tunggu sebentar lalu muat ulang.'); return; }
+  // read canvas into mat
+  srcMat = cv.imread(canvas);
+  if(srcMat.empty()){ alert('Belum ada gambar di kanvas. Upload atau ambil foto dulu (klik canvas saat kamera aktif).'); return; }
+
+  try {
+    // Step 1: preprocess & find largest paper contour, warp perspective
+    const warped = detectAndWarp(srcMat);
+    // Step 2: threshold and detect bubbles / cells
+    const answers = detectBubblesAndRead(warped);
+    // Step 3: grade
+    const scoreInfo = gradeAnswers(answers);
+    // show results
+    drawResults(warped, answers, scoreInfo);
+  } catch(err){
+    console.error(err);
+    alert('Terjadi error saat pemrosesan: ' + err);
+  } finally {
+    // free
+    srcMat.delete();
+  }
+}
+
+// Utility: detect paper contour and warp to upright rectangle
+function detectAndWarp(src){
+  let gray = new cv.Mat();
+  cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
+  // blur + edge
+  let blurred = new cv.Mat();
+  cv.GaussianBlur(gray, blurred, new cv.Size(5,5), 0);
+  let edged = new cv.Mat();
+  cv.Canny(blurred, edged, 75, 200);
+  // find contours
+  let contours = new cv.MatVector();
+  let hierarchy = new cv.Mat();
+  cv.findContours(edged, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
+  // find largest quadrilateral
+  let maxArea = 0; let docCnt = null;
+  for(let i=0;i<contours.size();i++){
+    let cnt = contours.get(i);
+    const area = cv.contourArea(cnt);
+    if(area < 1000) { cnt.delete(); continue; }
+    let peri = cv.arcLength(cnt, true);
+    let approx = new cv.Mat();
+    cv.approxPolyDP(cnt, approx, 0.02 * peri, true);
+    if(approx.rows === 4 && area > maxArea){
+      maxArea = area;
+      if(docCnt) docCnt.delete();
+      docCnt = approx;
+    } else {
+      approx.delete();
+    }
+    cnt.delete();
+  }
+  // default: if not found, use whole image
+  let warped = new cv.Mat();
+  if(docCnt){
+    // get corners, sort them
+    let pts = [];
+    for(let i=0;i<4;i++){
+      pts.push({x: docCnt.intPtr(i,0)[0], y: docCnt.intPtr(i,0)[1]});
+    }
+    docCnt.delete();
+    // sort by sum/diff to top-left, etc.
+    pts.sort((a,b)=> (a.x + a.y) - (b.x + b.y));
+    const tl = pts[0];
+    const br = pts[3];
+    // find remaining tl/tr/bl by comparing x
+    pts.sort((a,b)=> a.x - b.x);
+    const left = pts[0], right = pts[3];
+    // simpler approach: compute bounding rectangle and warp to A4-ish ratio
+    const width = Math.max(Math.hypot(br.x - tl.x, br.y - tl.y), 800);
+    const height = Math.floor(width * 1.414); // A4 ratio approx sqrt(2)
+    const dsize = new cv.Size(width, height);
+    // compute perspective transform using boundingRect corners
+    const srcTri = cv.matFromArray(4,1,cv.CV_32FC2,[tl.x,tl.y, right.x,tl.y, right.x,br.y, tl.x,br.y]);
+    const dstTri = cv.matFromArray(4,1,cv.CV_32FC2,[0,0, dsize.width-1,0, dsize.width-1, dsize.height-1, 0, dsize.height-1]);
+    const M = cv.getPerspectiveTransform(srcTri, dstTri);
+    cv.warpPerspective(src, warped, M, dsize, cv.INTER_LINEAR, cv.BORDER_CONSTANT, new cv.Scalar());
+    srcTri.delete(); dstTri.delete(); M.delete();
+  } else {
+    // fallback: resize original to width 960
+    let dsize = new cv.Size(960, Math.round(src.rows * (960/src.cols)));
+    cv.resize(src, warped, dsize, 0, 0, cv.INTER_AREA);
+  }
+  // cleanup
+  gray.delete(); blurred.delete(); edged.delete(); contours.delete(); hierarchy.delete();
+  return warped;
+}
+
+// detect bubbles given warped image
+function detectBubblesAndRead(warped){
+  // convert to gray + adaptive threshold (binary)
+  let gray = new cv.Mat();
+  cv.cvtColor(warped, gray, cv.COLOR_RGBA2GRAY, 0);
+  let bw = new cv.Mat();
+  cv.adaptiveThreshold(gray, bw, 255, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY_INV, 25, 10);
+  // morphological to close small holes
+  let kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(3,3));
+  cv.morphologyEx(bw, bw, cv.MORPH_CLOSE, kernel);
+  // find contours (candidate bubbles)
+  let contours = new cv.MatVector();
+  let hierarchy = new cv.Mat();
+  cv.findContours(bw, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+
+  // filter contours by shape/area to keep circular bubbles
+  const cand = [];
+  for(let i=0;i<contours.size();i++){
+    const cnt = contours.get(i);
+    const area = cv.contourArea(cnt);
+    if(area < 300 || area > 10000){ cnt.delete(); continue; } // filter by area
+    const rect = cv.boundingRect(cnt);
+    const ratio = rect.width / rect.height;
+    if(ratio < 0.6 || ratio > 1.6) { cnt.delete(); continue; }
+    cand.push({cnt, area, rect});
+  }
+
+  // sort by y then x to group rows
+  cand.sort((a,b)=>{
+    if(Math.abs(a.rect.y - b.rect.y) > 12) return a.rect.y - b.rect.y;
+    return a.rect.x - b.rect.x;
+  });
+
+  // Build grid: either auto grouping or fixed grid based on user's choices
+  const mode = modeSelect.value;
+  const numQ = parseInt(document.getElementById('numQ').value || '10');
+  const choices = parseInt(document.getElementById('choices').value || '4');
+
+  let answers = new Array(numQ).fill(null);
+
+  if(mode === 'fixed'){
+    // fixed: assume uniform grid with numQ rows and choices columns. We'll compute bounding box of all candidates then place grid
+    if(cand.length < 1) { clean(); return answers; }
+    const minX = Math.min(...cand.map(c=>c.rect.x));
+    const minY = Math.min(...cand.map(c=>c.rect.y));
+    const maxX = Math.max(...cand.map(c=>c.rect.x + c.rect.width));
+    const maxY = Math.max(...cand.map(c=>c.rect.y + c.rect.height));
+    const gridW = maxX - minX;
+    const gridH = maxY - minY;
+    const cellW = gridW / choices;
+    const cellH = gridH / numQ;
+
+    // for each cell, count non-zero pixels in bw region -> determine filled
+    for(let r=0;r<numQ;r++){
+      let bestIdx = -1; let bestVal = -1;
+      for(let c=0;c<choices;c++){
+        const rx = Math.round(minX + c*cellW);
+        const ry = Math.round(minY + r*cellH);
+        const rw = Math.round(cellW);
+        const rh = Math.round(cellH);
+        const roi = bw.roi(new cv.Rect(rx, ry, Math.max(1,rw), Math.max(1,rh)));
+        const nz = cv.countNonZero(roi);
+        roi.delete();
+        if(nz > bestVal){ bestVal = nz; bestIdx = c; }
+      }
+      // threshold: if bestVal is small -> empty
+      answers[r] = (bestVal > 200) ? bestIdx : null;
+    }
+  } else {
+    // auto: group contours into rows by y proximity, then into columns
+    // cluster rows
+    const rows = [];
+    const rowTolerance = 14;
+    cand.forEach(item => {
+      let placed = false;
+      for(let row of rows){
+        if(Math.abs(row.y - item.rect.y) < rowTolerance){
+          row.items.push(item);
+          row.y = (row.y * (row.items.length-1) + item.rect.y) / row.items.length;
+          placed = true; break;
+        }
+      }
+      if(!placed){
+        rows.push({y: item.rect.y, items: [item]});
+      }
+    });
+    // sort rows top->bottom, and items left->right
+    rows.sort((a,b)=> a.y - b.y);
+    rows.forEach(r => r.items.sort((x,y)=> x.rect.x - y.rect.x));
+    // now read answers: each row -> questions may have multiple bubbles; try map rows to questions
+    // We assume each row corresponds to one question and items.length==choices
+    for(let i=0;i<rows.length && i<numQ;i++){
+      const row = rows[i];
+      // if more items than choices, try to take evenly spaced or the first 'choices'
+      const items = row.items.slice(0, choices);
+      let bestIdx = -1; let bestVal = -1;
+      for(let j=0;j<items.length;j++){
+        // get mask for contour
+        const rect = items[j].rect;
+        const roi = bw.roi(new cv.Rect(rect.x, rect.y, Math.max(1,rect.width), Math.max(1,rect.height)));
+        const nz = cv.countNonZero(roi);
+        roi.delete();
+        if(nz > bestVal){ bestVal = nz; bestIdx = j; }
+      }
+      answers[i] = (bestVal > 150) ? bestIdx : null;
+    }
+  }
+
+  // cleanup
+  bw.delete(); gray.delete(); kernel.delete();
+  contours.delete(); hierarchy.delete();
+  cand.forEach(c=>{ if(c.cnt) c.cnt.delete(); });
+  return answers;
+
+  function clean(){ bw.delete(); gray.delete(); kernel.delete(); contours.delete(); hierarchy.delete(); cand.forEach(c=>{ if(c.cnt) c.cnt.delete(); }); }
+}
+
+// grade by compare with key
+function gradeAnswers(detected){
+  let key;
+  try {
+    key = JSON.parse(document.getElementById('answerKey').value);
+  } catch(e){
+    alert('Format kunci salah. Pastikan JSON array, misal: [1,0,2,3,...]');
+    throw e;
+  }
+  const n = Math.min(detected.length, key.length);
+  let correct = 0, blank = 0;
+  const details = [];
+  for(let i=0;i<n;i++){
+    const det = detected[i];
+    const k = key[i];
+    let ok = (det !== null && det === k);
+    if(det === null) blank++;
+    if(ok) correct++;
+    details.push({q: i+1, key: k, detected: det, correct: ok});
+  }
+  const score = Math.round((correct / n) * 100);
+  return {n, correct, blank, score, details};
+}
+
+// draw results on canvas and show text
+function drawResults(warped, answers, scoreInfo){
+  // draw warped image to canvas
+  cv.imshow(canvas, warped);
+  // overlay small markers for detected answers (approx)
+  const ctx = canvas.getContext('2d');
+  ctx.font = "14px Arial";
+  ctx.fillStyle = "rgba(255,0,0,0.8)";
+  // simple overlay: list per question
+  for(let i=0;i<scoreInfo.details.length;i++){
+    const d = scoreInfo.details[i];
+    ctx.fillText(`${d.q}:${d.detected===null ? '-' : String.fromCharCode(65 + d.detected)}`, 10, 20 + i*18);
+  }
+  // show summary
+  resultDiv.style.display = 'block';
+  resultDiv.innerHTML = `<strong>Hasil:</strong> ${scoreInfo.correct}/${scoreInfo.n} benar. Skor ${scoreInfo.score}%<br>
+  Kosong: ${scoreInfo.blank}<br>
+  <details><summary>Detail per soal</summary>
+  <table border="1" cellpadding="6" style="border-collapse:collapse;margin-top:8px;">
+    <tr><th>Soal</th><th>Kunci</th><th>Terbaca</th><th>Benar?</th></tr>
+    ${scoreInfo.details.map(d=>`<tr><td>${d.q}</td><td>${String.fromCharCode(65 + d.key)}</td><td>${d.detected===null?'-':String.fromCharCode(65+d.detected)}</td><td>${d.correct? '✅':'❌'}</td></tr>`).join('')}
+  </table></details>`;
+}
+
+// cleanup on page unload
+window.addEventListener('beforeunload', ()=>{ if(videoStream) videoStream.getTracks().forEach(t=>t.stop()); });
+
+</script>
+</body>
+</html>

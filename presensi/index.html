@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIP DA - Presensi Digital</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #1a936f;
+            --primary-dark: #114b47;
+            --secondary: #88d498;
+            --accent: #c6dabf;
+            --surface: #ffffff;
+            --background: #f8f9fa;
+            --on-primary: #ffffff;
+            --on-surface: #2b2b2b;
+            --on-background: #5a5a5a;
+            --border: #e0e0e0;
+            --shadow: 0 2px 8px rgba(0,0,0,0.1);
+            --radius: 12px;
+            --danger: #e74c3c;
+            --warning: #f39c12;
+            --success: #27ae60;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background);
+            color: var(--on-surface);
+            line-height: 1.6;
+            padding-bottom: 80px;
+        }
+
+        .container {
+            max-width: 100%;
+            padding: 0 16px;
+        }
+
+        /* HEADER */
+        .header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: var(--on-primary);
+            padding: 20px 0;
+            position: relative;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-info h1 {
+            font-size: 1.3rem;
+            margin-bottom: 5px;
+        }
+
+        .header-info p {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .logout-btn {
+            background: rgba(255,255,255,0.2);
+            color: var(--on-primary);
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.1);
+        }
+
+        /* MAIN CONTENT */
+        .main-content {
+            padding: 20px 0;
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* CARDS */
+        .card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow);
+        }
+
+        /* TIME INFO */
+        .time-info {
+            text-align: center;
+        }
+
+        .current-time {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 8px;
+        }
+
+        .schedule-info {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 12px;
+        }
+
+        .schedule-item {
+            text-align: center;
+        }
+
+        .schedule-item .label {
+            font-size: 0.8rem;
+            color: var(--on-background);
+            margin-bottom: 4px;
+        }
+
+        .schedule-item .time {
+            font-weight: bold;
+            color: var(--on-surface);
+        }
+
+        .countdown {
+            font-size: 0.9rem;
+            margin-top: 8px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+
+        .countdown.early {
+            background: var(--accent);
+            color: var(--primary-dark);
+        }
+
+        .countdown.late {
+            background: var(--danger);
+            color: white;
+        }
+
+        .countdown.going-home {
+            background: var(--warning);
+            color: white;
+        }
+
+        /* PRESENSI OPTIONS */
+        .presensi-options {
+            display: grid;
+            gap: 12px;
+            margin: 20px 0;
+        }
+
+        .presensi-option {
+            background: var(--surface);
+            border: 2px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+        }
+
+        .presensi-option.active {
+            border-color: var(--primary);
+            background: var(--accent);
+        }
+
+        .presensi-option:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .option-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .option-header h3 {
+            color: var(--primary-dark);
+        }
+
+        .option-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: bold;
+        }
+
+        .badge-wfo {
+            background: var(--primary);
+            color: white;
+        }
+
+        .badge-wfh {
+            background: var(--warning);
+            color: white;
+        }
+
+        .option-description {
+            color: var(--on-background);
+            font-size: 0.9rem;
+            margin-bottom: 12px;
+        }
+
+        /* BUTTONS */
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: var(--on-primary);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: var(--background);
+            color: var(--on-surface);
+            border: 1px solid var(--border);
+        }
+
+        .btn-full {
+            width: 100%;
+        }
+
+        /* BOTTOM NAV */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            display: flex;
+            padding: 8px 0;
+            z-index: 1000;
+        }
+
+        .nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 8px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: var(--on-background);
+        }
+
+        .nav-item.active {
+            color: var(--primary);
+        }
+
+        .nav-icon {
+            font-size: 1.2rem;
+            margin-bottom: 4px;
+        }
+
+        .nav-label {
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+
+        /* MODAL */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 24px;
+            width: 100%;
+            max-width: 400px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--on-background);
+        }
+
+        /* FORM ELEMENTS */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            color: var(--on-surface);
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        /* STATUS */
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .status-item:last-child {
+            border-bottom: none;
+        }
+
+        .status-success {
+            color: var(--success);
+        }
+
+        .status-warning {
+            color: var(--warning);
+        }
+    </style>
+</head>
+<body>
+    <!-- LOGIN PAGE -->
+    <div id="loginPage">
+        <div class="container" style="max-width: 400px; margin: 100px auto; padding: 20px;">
+            <div class="card" style="text-align: center;">
+                <div style="font-size: 3rem; color: var(--primary); margin-bottom: 20px;">
+                    <i class="fas fa-fingerprint"></i>
+                </div>
+                <h1 style="color: var(--primary-dark); margin-bottom: 10px;">SIP DA</h1>
+                <p style="color: var(--on-background); margin-bottom: 30px;">Sistem Presensi Digital</p>
+                
+                <form id="loginForm">
+                    <div class="form-group">
+                        <div style="position: relative;">
+                            <i class="fas fa-user" style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--on-background);"></i>
+                            <input type="text" id="username" placeholder="Username" style="padding-left: 45px;">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div style="position: relative;">
+                            <i class="fas fa-lock" style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--on-background);"></i>
+                            <input type="password" id="password" placeholder="Password" style="padding-left: 45px;">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full">
+                        <i class="fas fa-sign-in-alt"></i> Login
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP -->
+    <div id="mainApp" style="display: none;">
+        <!-- HEADER -->
+        <header class="header">
+            <div class="container">
+                <div class="header-content">
+                    <div class="header-info">
+                        <h1 id="greeting">Halo, User! 👋</h1>
+                        <p>SIP DA - Presensi Digital</p>
+                    </div>
+                    <button class="logout-btn" title="Logout">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- MAIN CONTENT -->
+        <main class="main-content">
+            <div class="container">
+                
+                <!-- TAB: ABSEN -->
+                <div id="absen" class="tab-content active">
+                    <!-- TIME INFO -->
+                    <div class="card time-info">
+                        <div class="current-time" id="currentTime">00:00:00</div>
+                        <div class="countdown early" id="countdown">Memuat...</div>
+                        
+                        <div class="schedule-info">
+                            <div class="schedule-item">
+                                <div class="label">Presensi Masuk</div>
+                                <div class="time" id="masukTime">08:00</div>
+                            </div>
+                            <div class="schedule-item">
+                                <div class="label">Presensi Pulang</div>
+                                <div class="time" id="pulangTime">16:00</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TODAY STATUS -->
+                    <div class="card">
+                        <h3 style="margin-bottom: 16px;">Status Hari Ini</h3>
+                        <div class="status-item">
+                            <span>Presensi Masuk:</span>
+                            <span id="statusMasuk" class="status-warning">Belum</span>
+                        </div>
+                        <div class="status-item">
+                            <span>Presensi Pulang:</span>
+                            <span id="statusPulang" class="status-warning">Belum</span>
+                        </div>
+                    </div>
+
+                    <!-- PRESENSI OPTIONS -->
+                    <div class="presensi-options">
+                        <!-- WFO OPTION -->
+                        <div class="presensi-option active" id="wfoOption">
+                            <div class="option-header">
+                                <h3>Work From Office (WFO)</h3>
+                                <span class="option-badge badge-wfo">REKOMENDASI</span>
+                            </div>
+                            <p class="option-description">Posisi anda sudah masuk koordinat (SMK Darulabror)</p>
+                            <button class="btn btn-primary btn-full" id="presensiWFOBtn">
+                                <i class="fas fa-camera"></i> Presensi Masuk
+                            </button>
+                            <button class="btn btn-secondary btn-full" id="presensiPulangBtn" style="margin-top: 8px;">
+                                <i class="fas fa-home"></i> Presensi Pulang
+                            </button>
+                        </div>
+
+                        <!-- WFH OPTION -->
+                        <div class="presensi-option" id="wfhOption">
+                            <div class="option-header">
+                                <h3>Work From Home (WFH)</h3>
+                                <span class="option-badge badge-wfh">PERLU IZIN</span>
+                            </div>
+                            <p class="option-description">Atas izin kepala sekolah dengan mengajukan permohonan</p>
+                            <button class="btn btn-secondary btn-full" id="ajukanWFHBtn">
+                                <i class="fas fa-envelope"></i> Ajukan WFH
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB: HISTORY -->
+                <div id="history" class="tab-content">
+                    <div class="card">
+                        <h3 style="margin-bottom: 16px;">Riwayat Presensi</h3>
+                        <div id="historyList">
+                            <!-- History items will be loaded here -->
+                            <p style="text-align: center; color: var(--on-background); padding: 20px;">
+                                Memuat riwayat presensi...
+                            </p>
+                        </div>
+                        <button class="btn btn-primary btn-full" id="generateReportBtn" style="margin-top: 16px;">
+                            <i class="fas fa-file-pdf"></i> Generate Report PDF
+                        </button>
+                    </div>
+                </div>
+
+                <!-- TAB: PROFILE -->
+                <div id="profile" class="tab-content">
+                    <div class="card">
+                        <div style="text-align: center; margin-bottom: 20px;">
+                            <div style="width: 80px; height: 80px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 16px;">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <h3 id="profileName">User</h3>
+                            <p id="profileRole" style="color: var(--on-background);">Role</p>
+                        </div>
+                        
+                        <form id="profileForm">
+                            <div class="form-group">
+                                <label>Nama Lengkap</label>
+                                <input type="text" id="profileNama" value="User">
+                            </div>
+                            <div class="form-group">
+                                <label>Password Baru</label>
+                                <input type="password" id="profilePassword" placeholder="Masukkan password baru">
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-full">
+                                <i class="fas fa-save"></i> Simpan Perubahan
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- TAB: ADMIN -->
+                <div id="admin" class="tab-content">
+                    <div class="card">
+                        <h3 style="margin-bottom: 16px;">Panel Admin</h3>
+                        <p style="margin-bottom: 20px; color: var(--on-background);">Fitur manajemen untuk administrator</p>
+                        
+                        <button class="btn btn-primary btn-full" id="manageUsersBtn" style="margin-bottom: 10px;">
+                            <i class="fas fa-users"></i> Kelola Pengguna
+                        </button>
+                        
+                        <button class="btn btn-primary btn-full" id="settingsBtn">
+                            <i class="fas fa-cog"></i> Pengaturan Sistem
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+
+        <!-- BOTTOM NAVIGATION -->
+        <nav class="bottom-nav">
+            <button class="nav-item active" data-tab="absen">
+                <i class="fas fa-fingerprint nav-icon"></i>
+                <span class="nav-label">Absen</span>
+            </button>
+            
+            <button class="nav-item" data-tab="history">
+                <i class="fas fa-history nav-icon"></i>
+                <span class="nav-label">History</span>
+            </button>
+            
+            <button class="nav-item" data-tab="profile">
+                <i class="fas fa-user nav-icon"></i>
+                <span class="nav-label">Profile</span>
+            </button>
+            
+            <button class="nav-item" data-tab="admin">
+                <i class="fas fa-shield-alt nav-icon"></i>
+                <span class="nav-label">Admin</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- MODALS -->
+    <div class="modal" id="locationModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Verifikasi Lokasi</h3>
+                <button class="modal-close" onclick="closeModal('locationModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="locationStatus">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Memeriksa lokasi Anda...</p>
+                </div>
+                <div id="locationInfo" style="display: none;">
+                    <div class="location-detail">
+                        <p><i class="fas fa-map-marker-alt"></i> <strong>Lokasi Sekolah:</strong> SMK Darulabror</p>
+                        <p><i class="fas fa-crosshairs"></i> <strong>Posisi Anda:</strong> <span id="currentPosition"></span></p>
+                        <p><i class="fas fa-ruler"></i> <strong>Jarak:</strong> <span id="distanceInfo"></span></p>
+                        <p><i class="fas fa-check-circle" style="color: var(--success);"></i> <strong>Status:</strong> <span id="radiusStatus"></span></p>
+                    </div>
+                    <button class="btn btn-primary btn-full" id="proceedPresensiBtn">
+                        <i class="fas fa-camera"></i> Lanjutkan Presensi
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="wfhModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Pengajuan Work From Home</h3>
+                <button class="modal-close" onclick="closeModal('wfhModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="wfhForm">
+                    <div class="form-group">
+                        <label>Tanggal WFH</label>
+                        <input type="date" id="wfhDate" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Alasan WFH</label>
+                        <select id="wfhReason" required>
+                            <option value="">Pilih alasan</option>
+                            <option value="sakit">Sakit</option>
+                            <option value="keluarga">Keperluan Keluarga</option>
+                            <option value="dinas">Dinas Luar</option>
+                            <option value="lainnya">Lainnya</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Keterangan Detail</label>
+                        <textarea id="wfhDetail" placeholder="Jelaskan alasan WFH secara detail..." required></textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-full">
+                        <i class="fas fa-paper-plane"></i> Ajukan ke Kepala Sekolah
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="reportModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Generate Laporan</h3>
+                <button class="modal-close" onclick="closeModal('reportModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Tanggal Mulai</label>
+                    <input type="date" id="reportStartDate">
+                </div>
+                <div class="form-group">
+                    <label>Tanggal Akhir</label>
+                    <input type="date" id="reportEndDate">
+                </div>
+                <button class="btn btn-primary btn-full" id="generatePDFBtn">
+                    <i class="fas fa-file-pdf"></i> Generate PDF Report
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== SIMPLE DATABASE WITH localStorage ====================
+        class SimpleDB {
+            constructor() {
+                this.init();
+            }
+
+            init() {
+                if (!localStorage.getItem('sipda_users')) {
+                    localStorage.setItem('sipda_users', JSON.stringify([
+                        { id: 1, username: 'admin', password: 'admin123', role: 'admin', nama: 'Administrator' },
+                        { id: 2, username: 'mukhlis', password: 'user123', role: 'user', nama: 'Mukhlis' }
+                    ]));
+                }
+
+                if (!localStorage.getItem('sipda_presensi')) {
+                    localStorage.setItem('sipda_presensi', JSON.stringify([]));
+                }
+
+                if (!localStorage.getItem('sipda_settings')) {
+                    localStorage.setItem('sipda_settings', JSON.stringify({
+                        schoolLocation: { lat: -7.250445, lng: 112.768845, radius: 100 },
+                        workHours: {
+                            'Senin': [{ masuk: '07:00', pulang: '16:00' }],
+                            'Selasa': [{ masuk: '07:00', pulang: '16:00' }],
+                            'Rabu': [{ masuk: '07:00', pulang: '16:00' }],
+                            'Kamis': [{ masuk: '07:00', pulang: '16:00' }],
+                            'Jumat': [{ masuk: '07:00', pulang: '16:00' }]
+                        }
+                    }));
+                }
+            }
+
+            get(table) {
+                return JSON.parse(localStorage.getItem(`sipda_${table}`) || '[]');
+            }
+
+            set(table, data) {
+                localStorage.setItem(`sipda_${table}`, JSON.stringify(data));
+            }
+
+            insert(table, record) {
+                const data = this.get(table);
+                record.id = Date.now();
+                data.push(record);
+                this.set(table, data);
+                return record.id;
+            }
+
+            query(table, condition = {}) {
+                const data = this.get(table);
+                if (Object.keys(condition).length === 0) return data;
+                
+                return data.filter(item => {
+                    return Object.keys(condition).every(key => item[key] === condition[key]);
+                });
+            }
+        }
+
+        // ==================== GEOLOCATION SERVICE ====================
+        class GeolocationService {
+            constructor() {
+                this.schoolLocation = { lat: -7.250445, lng: 112.768845 };
+                this.radius = 100; // meters
+            }
+
+            getCurrentLocation() {
+                return new Promise((resolve, reject) => {
+                    if (!navigator.geolocation) {
+                        reject('Geolocation tidak didukung browser');
+                        return;
+                    }
+
+                    navigator.geolocation.getCurrentPosition(
+                        position => resolve(position.coords),
+                        error => reject(this.getErrorMsg(error)),
+                        { enableHighAccuracy: true, timeout: 10000 }
+                    );
+                });
+            }
+
+            getErrorMsg(error) {
+                switch(error.code) {
+                    case error.PERMISSION_DENIED:
+                        return 'Akses lokasi ditolak. Izinkan akses lokasi untuk presensi.';
+                    case error.POSITION_UNAVAILABLE:
+                        return 'Informasi lokasi tidak tersedia.';
+                    case error.TIMEOUT:
+                        return 'Request lokasi timeout.';
+                    default:
+                        return 'Error tidak diketahui.';
+                }
+            }
+
+            calculateDistance(lat1, lon1, lat2, lon2) {
+                const R = 6371000;
+                const dLat = (lat2 - lat1) * Math.PI / 180;
+                const dLon = (lon2 - lon1) * Math.PI / 180;
+                const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                          Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                          Math.sin(dLon/2) * Math.sin(dLon/2);
+                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                return R * c;
+            }
+
+            async checkSchoolRadius() {
+                try {
+                    const coords = await this.getCurrentLocation();
+                    const distance = this.calculateDistance(
+                        coords.latitude, coords.longitude,
+                        this.schoolLocation.lat, this.schoolLocation.lng
+                    );
+                    
+                    return {
+                        withinRadius: distance <= this.radius,
+                        distance: Math.round(distance),
+                        coords: coords
+                    };
+                } catch (error) {
+                    throw new Error(error);
+                }
+            }
+        }
+
+        // ==================== NOTIFICATION SERVICE ====================
+        class NotificationService {
+            show(title, options = {}) {
+                // Simple alert-based notifications
+                alert(title + (options.body ? '\n' + options.body : ''));
+            }
+
+            showPresensiSuccess(type) {
+                this.show('Presensi Berhasil!', {
+                    body: `Presensi ${type} berhasil dicatat.`
+                });
+            }
+        }
+
+        // ==================== MAIN APPLICATION ====================
+        class SIPDAApp {
+            constructor() {
+                this.db = new SimpleDB();
+                this.geolocation = new GeolocationService();
+                this.notification = new NotificationService();
+                this.currentUser = null;
+                this.currentPresensiType = 'masuk';
+                this.init();
+            }
+
+            init() {
+                this.checkAuth();
+                this.setupEventListeners();
+                this.startClock();
+            }
+
+            checkAuth() {
+                const loggedInUser = localStorage.getItem('sipda_current_user');
+                if (loggedInUser) {
+                    this.currentUser = JSON.parse(loggedInUser);
+                    this.showMainApp();
+                }
+            }
+
+            async login(username, password) {
+                const users = this.db.query('users', { username, password });
+                if (users.length > 0) {
+                    this.currentUser = users[0];
+                    localStorage.setItem('sipda_current_user', JSON.stringify(this.currentUser));
+                    this.showMainApp();
+                    return true;
+                }
+                return false;
+            }
+
+            logout() {
+                this.currentUser = null;
+                localStorage.removeItem('sipda_current_user');
+                this.showLogin();
+            }
+
+            showMainApp() {
+                document.getElementById('loginPage').style.display = 'none';
+                document.getElementById('mainApp').style.display = 'block';
+                this.updateUserInfo();
+                this.updateUI();
+            }
+
+            showLogin() {
+                document.getElementById('loginPage').style.display = 'block';
+                document.getElementById('mainApp').style.display = 'none';
+            }
+
+            updateUserInfo() {
+                if (!this.currentUser) return;
+                
+                document.getElementById('greeting').textContent = `Halo, ${this.currentUser.nama}! 👋`;
+                document.getElementById('profileName').textContent = this.currentUser.nama;
+                document.getElementById('profileRole').textContent = this.currentUser.role === 'admin' ? 'Administrator' : 'User';
+                document.getElementById('profileNama').value = this.currentUser.nama;
+
+                // Hide admin tab for non-admin users
+                if (this.currentUser.role !== 'admin') {
+                    document.querySelector('[data-tab="admin"]').style.display = 'none';
+                }
+            }
+
+            // ==================== PRESENSI FUNCTIONS ====================
+            async presensiWFO(type) {
+                this.currentPresensiType = type;
+                
+                try {
+                    showModal('locationModal');
+                    const locationCheck = await this.geolocation.checkSchoolRadius();
+                    
+                    document.getElementById('locationStatus').style.display = 'none';
+                    document.getElementById('locationInfo').style.display = 'block';
+                    document.getElementById('currentPosition').textContent = 
+                        `${locationCheck.coords.latitude.toFixed(4)}, ${locationCheck.coords.longitude.toFixed(4)}`;
+                    document.getElementById('distanceInfo').textContent = `${locationCheck.distance}m dari sekolah`;
+                    
+                    if (locationCheck.withinRadius) {
+                        document.getElementById('radiusStatus').textContent = 'Dalam radius sekolah ✓';
+                        document.getElementById('radiusStatus').style.color = 'var(--success)';
+                        document.getElementById('proceedPresensiBtn').disabled = false;
+                    } else {
+                        document.getElementById('radiusStatus').textContent = 'Di luar radius sekolah ✗';
+                        document.getElementById('radiusStatus').style.color = 'var(--danger)';
+                        document.getElementById('proceedPresensiBtn').disabled = true;
+                    }
+                    
+                } catch (error) {
+                    this.notification.show('Error', { body: error.message });
+                    closeModal('locationModal');
+                }
+            }
+
+            async proceedWithPresensi() {
+                closeModal('locationModal');
+                
+                // Simulate camera access
+                if (confirm('Aktifkan kamera untuk mengambil foto presensi?')) {
+                    const presensiRecord = {
+                        user_id: this.currentUser.id,
+                        user_nama: this.currentUser.nama,
+                        type: this.currentPresensiType,
+                        timestamp: new Date().toISOString(),
+                        status: 'Hadir',
+                        masuk: this.currentPresensiType === 'masuk' ? new Date().toLocaleTimeString('id-ID') : null,
+                        pulang: this.currentPresensiType === 'pulang' ? new Date().toLocaleTimeString('id-ID') : null
+                    };
+
+                    this.db.insert('presensi', presensiRecord);
+                    this.notification.showPresensiSuccess(this.currentPresensiType);
+                    this.updateUI();
+                }
+            }
+
+            async ajukanWFH(formData) {
+                const presensiRecord = {
+                    user_id: this.currentUser.id,
+                    user_nama: this.currentUser.nama,
+                    type: 'wfh',
+                    timestamp: new Date().toISOString(),
+                    status: 'Menunggu Persetujuan',
+                    reason: formData.reason,
+                    detail: formData.detail,
+                    date: formData.date
+                };
+
+                this.db.insert('presensi', presensiRecord);
+                
+                // Format WhatsApp message
+                const message = `Assalamu'alaikum Pak Kepala Sekolah.\n\nSaya ${this.currentUser.nama} mengajukan izin Work From Home pada tanggal ${formData.date} dengan alasan ${formData.reason}.\n\nKeterangan: ${formData.detail}\n\nTerima kasih atas perhatiannya.`;
+                const encodedMessage = encodeURIComponent(message);
+                const whatsappURL = `https://wa.me/6281234567890?text=${encodedMessage}`;
+                
+                window.open(whatsappURL, '_blank');
+                this.notification.show('Pengajuan WFH Berhasil', { 
+                    body: 'Silakan lanjutkan konfirmasi via WhatsApp.' 
+                });
+            }
+
+            // ==================== UI UPDATE FUNCTIONS ====================
+            updateUI() {
+                this.updatePresensiStatus();
+                this.updateHistoryList();
+            }
+
+            updatePresensiStatus() {
+                const today = new Date().toDateString();
+                const todayPresensi = this.db.query('presensi').filter(p => 
+                    p.user_id === this.currentUser.id && 
+                    new Date(p.timestamp).toDateString() === today
+                );
+
+                const hasMasuk = todayPresensi.some(p => p.type === 'masuk');
+                const hasPulang = todayPresensi.some(p => p.type === 'pulang');
+
+                document.getElementById('statusMasuk').textContent = hasMasuk ? '✓ Sudah' : '✗ Belum';
+                document.getElementById('statusMasuk').className = hasMasuk ? 'status-success' : 'status-warning';
+                
+                document.getElementById('statusPulang').textContent = hasPulang ? '✓ Sudah' : '✗ Belum';
+                document.getElementById('statusPulang').className = hasPulang ? 'status-success' : 'status-warning';
+            }
+
+            updateHistoryList() {
+                const history = this.db.query('presensi')
+                    .filter(p => p.user_id === this.currentUser.id)
+                    .slice(-10) // Last 10 records
+                    .reverse();
+
+                const historyList = document.getElementById('historyList');
+                
+                if (history.length === 0) {
+                    historyList.innerHTML = '<p style="text-align: center; color: var(--on-background); padding: 20px;">Belum ada riwayat presensi</p>';
+                    return;
+                }
+
+                historyList.innerHTML = history.map(p => `
+                    <div class="status-item">
+                        <div>
+                            <strong>${new Date(p.timestamp).toLocaleDateString('id-ID')}</strong>
+                            <div style="font-size: 0.8rem; color: var(--on-background);">
+                                ${p.type.toUpperCase()} - ${p.status}
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div>${p.masuk || p.pulang || ''}</div>
+                            <div style="font-size: 0.8rem; color: var(--on-background);">
+                                ${p.reason ? p.reason : ''}
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // ==================== UTILITY FUNCTIONS ====================
+            startClock() {
+                setInterval(() => {
+                    const now = new Date();
+                    document.getElementById('currentTime').textContent = 
+                        now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                    
+                    this.updateCountdown(now);
+                }, 1000);
+            }
+
+            updateCountdown(now) {
+                const countdownEl = document.getElementById('countdown');
+                const masukTime = new Date();
+                masukTime.setHours(8, 0, 0, 0);
+                
+                const pulangTime = new Date();
+                pulangTime.setHours(16, 0, 0, 0);
+
+                if (now < masukTime) {
+                    const diff = masukTime - now;
+                    const minutes = Math.floor(diff / 60000);
+                    countdownEl.textContent = `Presensi masuk: ${minutes} menit lagi`;
+                    countdownEl.className = 'countdown early';
+                } else if (now >= masukTime && now < pulangTime) {
+                    const diff = pulangTime - now;
+                    const hours = Math.floor(diff / 3600000);
+                    const minutes = Math.floor((diff % 3600000) / 60000);
+                    countdownEl.textContent = `Presensi pulang: ${hours}j ${minutes}m lagi`;
+                    countdownEl.className = 'countdown going-home';
+                } else {
+                    countdownEl.textContent = `Waktu presensi telah berakhir`;
+                    countdownEl.className = 'countdown late';
+                }
+            }
+
+            setupEventListeners() {
+                // Login Form
+                document.getElementById('loginForm').addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const username = document.getElementById('username').value;
+                    const password = document.getElementById('password').value;
+                    
+                    if (await this.login(username, password)) {
+                        this.notification.show('Login Berhasil!');
+                    } else {
+                        alert('Username atau password salah!');
+                    }
+                });
+
+                // Logout
+                document.querySelector('.logout-btn').addEventListener('click', () => {
+                    if (confirm('Apakah Anda yakin ingin logout?')) {
+                        this.logout();
+                    }
+                });
+
+                // Presensi Buttons
+                document.getElementById('presensiWFOBtn').addEventListener('click', () => {
+                    this.presensiWFO('masuk');
+                });
+
+                document.getElementById('presensiPulangBtn').addEventListener('click', () => {
+                    this.presensiWFO('pulang');
+                });
+
+                document.getElementById('ajukanWFHBtn').addEventListener('click', () => {
+                    showModal('wfhModal');
+                    document.getElementById('wfhDate').value = new Date().toISOString().split('T')[0];
+                });
+
+                document.getElementById('proceedPresensiBtn').addEventListener('click', () => {
+                    this.proceedWithPresensi();
+                });
+
+                // WFH Form
+                document.getElementById('wfhForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const formData = {
+                        date: document.getElementById('wfhDate').value,
+                        reason: document.getElementById('wfhReason').value,
+                        detail: document.getElementById('wfhDetail').value
+                    };
+                    this.ajukanWFH(formData);
+                    closeModal('wfhModal');
+                });
+
+                // Report Generation
+                document.getElementById('generateReportBtn').addEventListener('click', () => {
+                    showModal('reportModal');
+                });
+
+                // Navigation
+                document.querySelectorAll('.nav-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        const targetTab = item.getAttribute('data-tab');
+                        
+                        document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+                        item.classList.add('active');
+                        
+                        document.querySelectorAll('.tab-content').forEach(content => {
+                            content.classList.remove('active');
+                            if (content.id === targetTab) {
+                                content.classList.add('active');
+                            }
+                        });
+                    });
+                });
+            }
+        }
+
+        // ==================== GLOBAL FUNCTIONS ====================
+        function showModal(modalId) {
+            document.getElementById(modalId).classList.add('active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        // Initialize application
+        const app = new SIPDAApp();
+
+        // Close modal when clicking outside
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('modal')) {
+                e.target.classList.remove('active');
+            }
+        });
+
+        // Prevent form submission on enter
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+                e.preventDefault();
+            }
+        });
+    </script>
+</body>
+</html>

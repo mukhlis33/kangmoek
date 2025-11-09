@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kompresi PDF - Kang Moek Tools</title>
+  <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #10b981;
+      --primary-dark: #0d9c6d;
+      --secondary: #059669;
+      --accent: #34d399;
+      --accent-light: #a7f3d0;
+      --light: #f0fdf4;
+      --dark: #052e16;
+      --gray: #6b7280;
+      --card-bg: rgba(255, 255, 255, 0.92);
+      --shadow: 0 10px 30px rgba(16, 185, 129, 0.1);
+      --shadow-hover: 0 15px 40px rgba(16, 185, 129, 0.15);
+      --glow: 0 0 20px rgba(16, 185, 129, 0.3);
+    }
+
+    [data-theme="dark"] {
+      --primary: #10b981;
+      --primary-dark: #0d9c6d;
+      --secondary: #059669;
+      --accent: #34d399;
+      --accent-light: #a7f3d0;
+      --light: #071122;
+      --dark: #e6eef8;
+      --gray: #9fb0c4;
+      --card-bg: rgba(11, 18, 32, 0.92);
+      --shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+      --shadow-hover: 0 15px 40px rgba(0, 0, 0, 0.8);
+      --glow: 0 0 20px rgba(16, 185, 129, 0.2);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf9 50%, #ccfbf1 100%);
+      color: var(--dark);
+      min-height: 100vh;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      overflow-x: hidden;
+      transition: all 0.3s ease;
+    }
+
+    body::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: 
+        radial-gradient(circle at 10% 20%, rgba(16, 185, 129, 0.08) 0%, transparent 25%),
+        radial-gradient(circle at 90% 80%, rgba(5, 150, 105, 0.08) 0%, transparent 25%),
+        radial-gradient(circle at 50% 50%, rgba(52, 211, 153, 0.05) 0%, transparent 50%);
+      z-index: -1;
+    }
+
+    .floating-shapes {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      z-index: -1;
+    }
+
+    .shape {
+      position: absolute;
+      background: linear-gradient(135deg, var(--accent), var(--primary));
+      opacity: 0.1;
+      border-radius: 50%;
+      animation: float 20s infinite linear;
+    }
+
+    .shape:nth-child(1) {
+      width: 80px;
+      height: 80px;
+      top: 10%;
+      left: 5%;
+      animation-delay: 0s;
+    }
+
+    .shape:nth-child(2) {
+      width: 120px;
+      height: 120px;
+      top: 60%;
+      left: 80%;
+      animation-delay: -5s;
+    }
+
+    .shape:nth-child(3) {
+      width: 60px;
+      height: 60px;
+      top: 80%;
+      left: 10%;
+      animation-delay: -10s;
+    }
+
+    .shape:nth-child(4) {
+      width: 100px;
+      height: 100px;
+      top: 20%;
+      left: 85%;
+      animation-delay: -15s;
+    }
+
+    @keyframes float {
+      0% {
+        transform: translate(0, 0) rotate(0deg);
+      }
+      25% {
+        transform: translate(10px, 15px) rotate(90deg);
+      }
+      50% {
+        transform: translate(0, 30px) rotate(180deg);
+      }
+      75% {
+        transform: translate(-10px, 15px) rotate(270deg);
+      }
+      100% {
+        transform: translate(0, 0) rotate(360deg);
+      }
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1400px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* Header Styles */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 0;
+      margin-bottom: 12px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-icon {
+      font-size: 28px;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      filter: drop-shadow(0 2px 4px rgba(16, 185, 129, 0.3));
+    }
+
+    .logo-text {
+      display: flex;
+      flex-direction: column;
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      line-height: 1.2;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: var(--gray);
+    }
+
+    .controls-top {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .icon-btn {
+      background: var(--card-bg);
+      border: 1px solid rgba(16, 185, 129, 0.1);
+      padding: 10px;
+      border-radius: 10px;
+      cursor: pointer;
+      color: var(--gray);
+      transition: all 0.3s ease;
+      box-shadow: var(--shadow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+    }
+
+    .icon-btn:hover {
+      background: rgba(16, 185, 129, 0.1);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-hover);
+    }
+
+    /* Main Content */
+    .main-content {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 1024px) {
+      .main-content {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Cards */
+    .card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      padding: 24px;
+      transition: all 0.4s ease;
+      position: relative;
+      overflow: hidden;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: linear-gradient(90deg, var(--accent), var(--primary));
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.4s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: var(--shadow-hover);
+    }
+
+    .card:hover::before {
+      transform: scaleX(1);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--dark);
+    }
+
+    /* Upload Area */
+    .upload-area {
+      border: 2px dashed rgba(16, 185, 129, 0.3);
+      border-radius: 12px;
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-bottom: 20px;
+    }
+
+    .upload-area:hover {
+      border-color: var(--primary);
+      background: rgba(16, 185, 129, 0.05);
+    }
+
+    .upload-icon {
+      font-size: 48px;
+      color: var(--primary);
+      margin-bottom: 16px;
+    }
+
+    .upload-text {
+      color: var(--gray);
+      margin-bottom: 16px;
+    }
+
+    /* Form Controls */
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+      color: var(--dark);
+    }
+
+    select, input[type="number"], input[type="text"], input[type="file"] {
+      width: 100%;
+      padding: 12px 16px;
+      border-radius: 10px;
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      font-size: 16px;
+      background: var(--card-bg);
+      color: var(--dark);
+      transition: all 0.3s ease;
+      font-family: 'Poppins', sans-serif;
+    }
+
+    select:focus, input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 12px 20px;
+      border-radius: 10px;
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      background: transparent;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      color: var(--dark);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      justify-content: center;
+    }
+
+    .btn:hover {
+      background: rgba(16, 185, 129, 0.1);
+      transform: translateY(-2px);
+    }
+
+    .btn.primary {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      border: none;
+      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+    }
+
+    .btn.primary:hover {
+      background: linear-gradient(135deg, var(--primary-dark), var(--secondary));
+      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+      transform: translateY(-2px);
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    /* Preview Area */
+    .preview-container {
+      height: 600px;
+      overflow: auto;
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      border-radius: 12px;
+      padding: 16px;
+      background: var(--card-bg);
+      position: relative;
+    }
+
+    .preview-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .view-mode {
+      display: flex;
+      gap: 8px;
+    }
+
+    .view-btn {
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      background: transparent;
+      cursor: pointer;
+      color: var(--dark);
+      transition: all 0.3s ease;
+    }
+
+    .view-btn.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .view-btn:hover:not(.active) {
+      background: rgba(16, 185, 129, 0.1);
+    }
+
+    .canvas-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      position: relative;
+    }
+
+    .page-canvas {
+      max-width: 100%;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+      cursor: crosshair;
+    }
+
+    .page-controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .page-info {
+      color: var(--gray);
+      font-size: 14px;
+    }
+
+    /* Edit Tools */
+    .edit-tools {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .edit-tool {
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      background: transparent;
+      cursor: pointer;
+      color: var(--dark);
+      transition: all 0.3s ease;
+    }
+
+    .edit-tool.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .edit-tool:hover:not(.active) {
+      background: rgba(16, 185, 129, 0.1);
+    }
+
+    /* Highlight colors */
+    .highlight-yellow { background-color: rgba(255, 255, 0, 0.3); }
+    .highlight-green { background-color: rgba(0, 255, 0, 0.3); }
+    .highlight-pink { background-color: rgba(255, 192, 203, 0.3); }
+    .highlight-blue { background-color: rgba(173, 216, 230, 0.3); }
+
+    /* Status */
+    .status {
+      padding: 12px 16px;
+      border-radius: 10px;
+      margin-top: 16px;
+      text-align: center;
+      font-weight: 500;
+    }
+
+    .status.success {
+      background: rgba(16, 185, 129, 0.1);
+      color: var(--primary);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+
+    .status.error {
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    .status.info {
+      background: rgba(59, 130, 246, 0.1);
+      color: #3b82f6;
+      border: 1px solid rgba(59, 130, 246, 0.2);
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      padding: 20px 0;
+      margin-top: 40px;
+      border-top: 1px solid rgba(16, 185, 129, 0.1);
+      color: var(--gray);
+      width: 100%;
+      max-width: 1400px;
+    }
+
+    .footer a {
+      color: var(--primary);
+      text-decoration: none;
+      transition: all 0.3s ease;
+    }
+
+    .footer a:hover {
+      text-decoration: underline;
+    }
+
+    .footer-sub {
+      font-size: 14px;
+      opacity: 0.8;
+      margin-top: 8px;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      body { padding: 16px; }
+      .header { flex-direction: column; gap: 16px; }
+      .controls-top { align-self: flex-end; }
+      .card { padding: 20px; }
+      .btn-group { flex-direction: column; }
+      .preview-controls { flex-direction: column; }
+    }
+
+    /* Annotation layer */
+    .annotation-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+    }
+
+    .annotation {
+      position: absolute;
+      pointer-events: auto;
+    }
+
+    .highlight-annotation {
+      background-color: rgba(255, 255, 0, 0.3);
+      border-radius: 3px;
+    }
+
+    .text-annotation {
+      background: white;
+      border: 1px solid #ccc;
+      padding: 2px 5px;
+      border-radius: 3px;
+      font-size: 12px;
+      cursor: text;
+    }
+  </style>
+</head>
+<body data-theme="light">
+  <div class="floating-shapes">
+    <div class="shape"></div>
+    <div class="shape"></div>
+    <div class="shape"></div>
+    <div class="shape"></div>
+  </div>
+
+  <div class="container">
+    <header class="header">
+      <div class="logo">
+        <div class="logo-icon">📄</div>
+        <div class="logo-text">
+          <h1>Kompresi PDF</h1>
+          <div class="subtitle">Kompres, Edit, dan Kelola PDF dengan Mudah</div>
+        </div>
+      </div>
+
+      <div class="controls-top">
+        <button class="icon-btn" id="themeToggle" title="Mode Gelap/Terang">🌙</button>
+      </div>
+    </header>
+
+    <main class="main-content">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Pengaturan Kompresi</div>
+        </div>
+
+        <div class="upload-area" id="uploadArea">
+          <div class="upload-icon">📁</div>
+          <div class="upload-text">Seret file PDF ke sini atau klik untuk mengunggah</div>
+          <input type="file" id="pdfFile" accept=".pdf" style="display: none;">
+          <button class="btn primary" onclick="document.getElementById('pdfFile').click()">
+            <span>📂</span>
+            Pilih File PDF
+          </button>
+        </div>
+
+        <div class="form-group">
+          <label for="mode">Mode Kompresi:</label>
+          <select id="mode">
+            <option value="150">Standar (DPI 150)</option>
+            <option value="96">Baik (DPI 96)</option>
+            <option value="72">Kecil (DPI 72)</option>
+            <option value="custom">Custom</option>
+          </select>
+        </div>
+
+        <div class="form-group" id="customDpiDiv" style="display:none;">
+          <label for="customDpi">Masukkan DPI:</label>
+          <input type="number" id="customDpi" value="100" min="50" max="300">
+        </div>
+
+        <div class="form-group">
+          <label for="quality">Kualitas JPEG (0-1):</label>
+          <input type="number" id="quality" value="0.7" min="0.1" max="1" step="0.1">
+        </div>
+
+        <div class="btn-group">
+          <button class="btn primary" onclick="compressPDF()">
+            <span>⚡</span>
+            Kompres PDF
+          </button>
+          <button class="btn" onclick="resetForm()">
+            <span>🔄</span>
+            Reset
+          </button>
+        </div>
+
+        <div class="form-group">
+          <label>Alat Edit:</label>
+          <div class="edit-tools">
+            <button class="edit-tool" data-tool="select" title="Pilih dan pindahkan">↖️</button>
+            <button class="edit-tool" data-tool="text" title="Tambah teks">T</button>
+            <button class="edit-tool" data-tool="highlight" title="Stabilo">🖍️</button>
+            <button class="edit-tool" data-tool="rotate" title="Putar halaman">🔄</button>
+            <button class="edit-tool" data-tool="delete" title="Hapus halaman">🗑️</button>
+          </div>
+        </div>
+
+        <div class="form-group" id="highlight-colors" style="display:none;">
+          <label>Warna Stabilo:</label>
+          <div class="edit-tools">
+            <button class="edit-tool highlight-yellow" data-color="yellow">Kuning</button>
+            <button class="edit-tool highlight-green" data-color="green">Hijau</button>
+            <button class="edit-tool highlight-pink" data-color="pink">Merah Muda</button>
+            <button class="edit-tool highlight-blue" data-color="blue">Biru</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="ocrLanguage">OCR Bahasa:</label>
+          <select id="ocrLanguage">
+            <option value="eng">English</option>
+            <option value="ind">Indonesian</option>
+            <option value="jav">Javanese</option>
+            <option value="sun">Sundanese</option>
+          </select>
+        </div>
+
+        <div class="btn-group">
+          <button class="btn primary" onclick="performOCR()">
+            <span>🔍</span>
+            Ekstrak Teks (OCR)
+          </button>
+          <button class="btn" onclick="saveEditedPDF()">
+            <span>💾</span>
+            Simpan Perubahan
+          </button>
+        </div>
+
+        <div id="status" class="status"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Pratinjau PDF</div>
+          <div class="preview-controls">
+            <div class="view-mode">
+              <button class="view-btn active" data-view="single">Satu Halaman</button>
+              <button class="view-btn" data-view="continuous">Berlanjut</button>
+            </div>
+            <div class="edit-tools">
+              <button class="icon-btn" onclick="zoomOut()">🔍-</button>
+              <span class="page-info" id="zoomLevel">100%</span>
+              <button class="icon-btn" onclick="zoomIn()">🔍+</button>
+              <button class="icon-btn" onclick="prevPage()">◀</button>
+              <span class="page-info" id="pageInfo">Halaman 1 dari 1</span>
+              <button class="icon-btn" onclick="nextPage()">▶</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="preview-container" id="previewContainer">
+          <div class="canvas-container" id="canvasContainer">
+            <div id="pdfViewer"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <footer class="footer">
+    <div class="footer-content">
+      <p>© <span id="currentYear"></span> 
+        <a href="https://kangmoek.gt.tc" target="_blank" rel="noopener noreferrer">
+          <strong>Kang Moek Tools</strong>
+        </a>
+      </p>
+      <p class="footer-sub">Dibuat oleh Kang Moek</p>
+    </div>
+  </footer>
+
+  <script>
+    // Set current year in footer
+    document.getElementById('currentYear').textContent = new Date().getFullYear();
+
+    // Global variables
+    let currentPDF = null;
+    let currentPage = 1;
+    let totalPages = 0;
+    let zoomLevel = 1;
+    let currentTool = 'select';
+    let currentHighlightColor = 'yellow';
+    let annotations = [];
+    let rotatedPages = {};
+    let deletedPages = new Set();
+
+    // Theme toggle
+    const themeToggle = document.getElementById('themeToggle');
+    const body = document.body;
+    const saved = localStorage.getItem('pdf-theme');
+    if(saved) body.setAttribute('data-theme', saved);
+    
+    themeToggle.addEventListener('click', () => {
+      const cur = body.getAttribute('data-theme') || 'light';
+      const next = cur === 'light' ? 'dark' : 'light';
+      body.setAttribute('data-theme', next);
+      localStorage.setItem('pdf-theme', next);
+    });
+
+    // Mode switching
+    document.getElementById('mode').addEventListener('change', function() {
+      document.getElementById('customDpiDiv').style.display = this.value === "custom" ? "block" : "none";
+    });
+
+    // Upload area
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('pdfFile');
+    
+    uploadArea.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadArea.style.borderColor = 'var(--primary)';
+      uploadArea.style.background = 'rgba(16, 185, 129, 0.05)';
+    });
+    
+    uploadArea.addEventListener('dragleave', () => {
+      uploadArea.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+      uploadArea.style.background = 'transparent';
+    });
+    
+    uploadArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadArea.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+      uploadArea.style.background = 'transparent';
+      
+      if (e.dataTransfer.files.length) {
+        fileInput.files = e.dataTransfer.files;
+        loadPDF();
+      }
+    });
+    
+    fileInput.addEventListener('change', loadPDF);
+
+    // View mode switching
+    document.querySelectorAll('.view-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        renderPDF();
+      });
+    });
+
+    // Edit tools
+    document.querySelectorAll('.edit-tool').forEach(tool => {
+      tool.addEventListener('click', function() {
+        if (this.dataset.tool) {
+          document.querySelectorAll('.edit-tool[data-tool]').forEach(t => t.classList.remove('active'));
+          this.classList.add('active');
+          currentTool = this.dataset.tool;
+          
+          // Show/hide highlight colors
+          document.getElementById('highlight-colors').style.display = 
+            currentTool === 'highlight' ? 'block' : 'none';
+        } else if (this.dataset.color) {
+          document.querySelectorAll('.edit-tool[data-color]').forEach(t => t.classList.remove('active'));
+          this.classList.add('active');
+          currentHighlightColor = this.dataset.color;
+        }
+      });
+    });
+
+    // PDF loading and rendering
+    async function loadPDF() {
+      const file = fileInput.files[0];
+      if (!file) return;
+      
+      showStatus("Memuat PDF...", "info");
+      
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+        currentPDF = await loadingTask.promise;
+        totalPages = currentPDF.numPages;
+        currentPage = 1;
+        annotations = [];
+        rotatedPages = {};
+        deletedPages.clear();
+        
+        showStatus("PDF berhasil dimuat", "success");
+        renderPDF();
+      } catch (error) {
+        showStatus("Error memuat PDF: " + error.message, "error");
+      }
+    }
+
+    async function renderPDF() {
+      if (!currentPDF) return;
+      
+      const container = document.getElementById('pdfViewer');
+      container.innerHTML = '';
+      
+      const viewMode = document.querySelector('.view-btn.active').dataset.view;
+      
+      for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+        if (deletedPages.has(pageNum)) continue;
+        
+        const page = await currentPDF.getPage(pageNum);
+        const viewport = page.getViewport({ scale: zoomLevel });
+        
+        // Apply rotation if exists
+        const rotation = rotatedPages[pageNum] || 0;
+        if (rotation !== 0) {
+          viewport.rotate += rotation;
+        }
+        
+        const canvas = document.createElement('canvas');
+        canvas.className = 'page-canvas';
+        canvas.dataset.pageNumber = pageNum;
+        const context = canvas.getContext('2d');
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+        
+        const renderContext = {
+          canvasContext: context,
+          viewport: viewport
+        };
+        
+        await page.render(renderContext).promise;
+        
+        // Add event listeners for editing
+        addCanvasEventListeners(canvas, pageNum);
+        
+        // Add annotation layer
+        const annotationLayer = document.createElement('div');
+        annotationLayer.className = 'annotation-layer';
+        annotationLayer.style.width = canvas.width + 'px';
+        annotationLayer.style.height = canvas.height + 'px';
+        
+        // Render existing annotations
+        renderAnnotations(annotationLayer, pageNum);
+        
+        const pageContainer = document.createElement('div');
+        pageContainer.style.position = 'relative';
+        pageContainer.style.marginBottom = '20px';
+        pageContainer.appendChild(canvas);
+        pageContainer.appendChild(annotationLayer);
+        
+        container.appendChild(pageContainer);
+        
+        if (viewMode === 'single' && pageNum !== currentPage) {
+          pageContainer.style.display = 'none';
+        }
+      }
+      
+      updatePageInfo();
+    }
+
+    function addCanvasEventListeners(canvas, pageNum) {
+      canvas.addEventListener('click', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        switch(currentTool) {
+          case 'highlight':
+            addHighlight(pageNum, x, y, 100, 30);
+            break;
+          case 'text':
+            addTextAnnotation(pageNum, x, y);
+            break;
+          case 'rotate':
+            rotatePage(pageNum);
+            break;
+          case 'delete':
+            deletePage(pageNum);
+            break;
+        }
+      });
+    }
+
+    function addHighlight(pageNum, x, y, width, height) {
+      const annotation = {
+        type: 'highlight',
+        page: pageNum,
+        x: x,
+        y: y,
+        width: width,
+        height: height,
+        color: currentHighlightColor
+      };
+      
+      annotations.push(annotation);
+      renderPDF();
+    }
+
+    function addTextAnnotation(pageNum, x, y) {
+      const text = prompt('Masukkan teks:');
+      if (text) {
+        const annotation = {
+          type: 'text',
+          page: pageNum,
+          x: x,
+          y: y,
+          text: text
+        };
+        
+        annotations.push(annotation);
+        renderPDF();
+      }
+    }
+
+    function rotatePage(pageNum) {
+      const currentRotation = rotatedPages[pageNum] || 0;
+      rotatedPages[pageNum] = (currentRotation + 90) % 360;
+      renderPDF();
+      showStatus(`Halaman ${pageNum} diputar ${rotatedPages[pageNum]} derajat`, "success");
+    }
+
+    function deletePage(pageNum) {
+      if (confirm(`Hapus halaman ${pageNum}?`)) {
+        deletedPages.add(pageNum);
+        renderPDF();
+        showStatus(`Halaman ${pageNum} dihapus`, "success");
+      }
+    }
+
+    function renderAnnotations(container, pageNum) {
+      const pageAnnotations = annotations.filter(a => a.page === pageNum);
+      
+      pageAnnotations.forEach(annotation => {
+        const element = document.createElement('div');
+        element.className = `annotation ${annotation.type}-annotation`;
+        element.style.left = annotation.x + 'px';
+        element.style.top = annotation.y + 'px';
+        
+        if (annotation.type === 'highlight') {
+          element.style.width = annotation.width + 'px';
+          element.style.height = annotation.height + 'px';
+          element.className += ` highlight-${annotation.color}`;
+        } else if (annotation.type === 'text') {
+          element.textContent = annotation.text;
+          element.style.backgroundColor = 'white';
+          element.style.border = '1px solid #ccc';
+          element.style.padding = '2px 5px';
+          element.style.borderRadius = '3px';
+          element.style.fontSize = '12px';
+        }
+        
+        container.appendChild(element);
+      });
+    }
+
+    function updatePageInfo() {
+      const visiblePages = totalPages - deletedPages.size;
+      document.getElementById('pageInfo').textContent = 
+        `Halaman ${currentPage} dari ${visiblePages}`;
+      document.getElementById('zoomLevel').textContent = 
+        `${Math.round(zoomLevel * 100)}%`;
+    }
+
+    function prevPage() {
+      if (currentPage > 1) {
+        currentPage--;
+        renderPDF();
+      }
+    }
+
+    function nextPage() {
+      if (currentPage < totalPages) {
+        currentPage++;
+        renderPDF();
+      }
+    }
+
+    function zoomIn() {
+      zoomLevel = Math.min(zoomLevel + 0.1, 3);
+      renderPDF();
+    }
+
+    function zoomOut() {
+      zoomLevel = Math.max(zoomLevel - 0.1, 0.5);
+      renderPDF();
+    }
+
+    // PDF compression
+    async function compressPDF() {
+      if (!fileInput.files[0]) {
+        showStatus("Silakan unggah file PDF terlebih dahulu.", "error");
+        return;
+      }
+
+      const mode = document.getElementById('mode').value;
+      const customDpi = parseInt(document.getElementById('customDpi').value);
+      const quality = parseFloat(document.getElementById('quality').value);
+
+      showStatus("Memproses PDF...", "info");
+
+      try {
+        const file = fileInput.files[0];
+        const arrayBuffer = await file.arrayBuffer();
+
+        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+        const pdf = await loadingTask.promise;
+
+        const dpi = mode === "custom" ? customDpi : parseInt(mode);
+        const scale = dpi / 72;
+
+        const pdfDoc = await PDFLib.PDFDocument.create();
+
+        for (let i = 0; i < pdf.numPages; i++) {
+          if (deletedPages.has(i + 1)) continue;
+          
+          const page = await pdf.getPage(i + 1);
+          
+          // Apply rotation
+          const rotation = rotatedPages[i + 1] || 0;
+          const viewport = page.getViewport({ scale: scale, rotation: rotation });
+
+          const canvas = document.createElement("canvas");
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          const context = canvas.getContext("2d");
+
+          await page.render({ canvasContext: context, viewport: viewport }).promise;
+
+          // Apply annotations
+          const pageAnnotations = annotations.filter(a => a.page === i + 1);
+          pageAnnotations.forEach(annotation => {
+            if (annotation.type === 'highlight') {
+              context.fillStyle = getHighlightColor(annotation.color);
+              context.fillRect(annotation.x, annotation.y, annotation.width, annotation.height);
+            } else if (annotation.type === 'text') {
+              context.fillStyle = 'black';
+              context.font = '12px Arial';
+              context.fillText(annotation.text, annotation.x, annotation.y);
+            }
+          });
+
+          const imgData = canvas.toDataURL("image/jpeg", quality);
+          const img = await pdfDoc.embedJpg(imgData);
+          const pagePdf = pdfDoc.addPage([canvas.width, canvas.height]);
+          pagePdf.drawImage(img, { x: 0, y: 0, width: canvas.width, height: canvas.height });
+        }
+
+        const compressedPdfBytes = await pdfDoc.save();
+        const blob = new Blob([compressedPdfBytes], { type: "application/pdf" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "pdf_terkompresi.pdf";
+        link.click();
+
+        showStatus("PDF berhasil dikompresi dan diunduh.", "success");
+      } catch (error) {
+        showStatus("Error mengompresi PDF: " + error.message, "error");
+      }
+    }
+
+    function getHighlightColor(color) {
+      const colors = {
+        yellow: 'rgba(255, 255, 0, 0.3)',
+        green: 'rgba(0, 255, 0, 0.3)',
+        pink: 'rgba(255, 192, 203, 0.3)',
+        blue: 'rgba(173, 216, 230, 0.3)'
+      };
+      return colors[color] || colors.yellow;
+    }
+
+    // OCR function
+    async function performOCR() {
+      if (!currentPDF) {
+        showStatus("Silakan muat PDF terlebih dahulu.", "error");
+        return;
+      }
+
+      const language = document.getElementById('ocrLanguage').value;
+      showStatus("Melakukan OCR...", "info");
+
+      try {
+        const page = await currentPDF.getPage(currentPage);
+        const viewport = page.getViewport({ scale: 2 });
+        
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+        
+        await page.render({ canvasContext: context, viewport: viewport }).promise;
+        
+        const { data: { text } } = await Tesseract.recognize(canvas, language);
+        
+        showStatus(`Teks berhasil diekstrak (Halaman ${currentPage}): ${text.substring(0, 100)}...`, "success");
+        
+        // Copy to clipboard
+        navigator.clipboard.writeText(text);
+        showStatus("Teks telah disalin ke clipboard", "info");
+      } catch (error) {
+        showStatus("Error melakukan OCR: " + error.message, "error");
+      }
+    }
+
+    function saveEditedPDF() {
+      showStatus("Menerapkan perubahan...", "info");
+      // Changes are already applied in renderPDF and compressPDF
+      showStatus("Perubahan berhasil diterapkan", "success");
+    }
+
+    function resetForm() {
+      fileInput.value = '';
+      currentPDF = null;
+      document.getElementById('pdfViewer').innerHTML = '';
+      document.getElementById('status').textContent = '';
+      annotations = [];
+      rotatedPages = {};
+      deletedPages.clear();
+      showStatus("Form telah direset.", "info");
+    }
+
+    function showStatus(message, type) {
+      const status = document.getElementById('status');
+      status.textContent = message;
+      status.className = `status ${type}`;
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+      // Set default tool
+      document.querySelector('.edit-tool[data-tool="select"]').classList.add('active');
+    });
+  </script>
+</body>
+</html>

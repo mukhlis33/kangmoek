@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- GANTI DENGAN NAMA MEMPELAI -->
+    <title>Undangan Pernikahan Muhlis & Yuyun</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Alice&family=Poppins:wght@300;400;600;700&family=Tangerine:wght@700&display=swap" rel="stylesheet">
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #F3F1EB;
+            overflow-x: hidden;
+            /* Mencegah scroll saat cover aktif */
+            overflow-y: hidden; 
+        }
+        .font-tangerine { font-family: 'Tangerine', cursive; }
+        .font-alice { font-family: 'Alice', serif; }
+
+        /* Style untuk animasi fade-in saat scroll */
+        .section-hidden {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+        }
+        .section-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .custom-shadow {
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        }
+        .pattern-bg {
+            background-image: url('https://www.transparenttextures.com/patterns/subtle-white-feathers.png');
+            background-color: #F3F1EB;
+        }
+        /* Style untuk cover agar selalu di atas dan full screen */
+        #cover {
+            transition: opacity 1.2s ease-in-out, visibility 1.2s;
+        }
+        /* Class untuk menyembunyikan cover */
+        .cover-hidden {
+            opacity: 0;
+            transition: opacity 0.3s ease; /* sinkron 0.3 detik */
+        }
+    </style>
+</head>
+<body class="max-w-lg mx-auto pattern-bg">
+
+    <!-- === BAGIAN COVER UNDANGAN === -->
+    <div id="cover" class="fixed top-0 left-0 right-0 bottom-0 z-50 max-w-lg mx-auto bg-gray-800">
+        <!-- FOTO COVER DIUBAH KE FILE LOKAL -->
+        <div class="w-full h-full bg-cover bg-center bg-no-repeat" style="background-image: url('gambar-cover.jpg');">
+            <div class="w-full h-full bg-black bg-opacity-40 flex flex-col justify-center items-center text-center text-white p-8">
+                <div class="flex-grow flex flex-col justify-end">
+                    <p class="font-alice text-sm tracking-widest">Walimatul 'Ursy</p>
+                    <h1 class="font-tangerine text-7xl md:text-8xl my-4">Muhlis & Yuyun</h1>
+                    <p id="wedding-date-cover" class="font-semibold text-lg"></p>
+                </div>
+                <div class="flex-grow flex flex-col justify-end w-full pb-12">
+                    <p class="text-sm">Kepada Yth. Bapak/Ibu/Saudara/i</p>
+                    <p id="guest-name" class="text-2xl font-bold mt-2 mb-6">Tamu Undangan</p>
+                    <button id="open-invitation" class="bg-teal-700 hover:bg-teal-800 text-white font-semibold py-3 px-6 rounded-lg shadow-lg flex items-center mx-auto transition-transform transform hover:scale-105">
+                        <i data-lucide="mail-open" class="mr-2"></i>
+                        Buka Undangan
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- === BAGIAN UTAMA UNDANGAN (Awalnya tersembunyi) === -->
+    <main id="main-content" class="opacity-0">
+        
+        <!-- === SAMPUL DALAM & AYAT === -->
+        <section id="inner-cover" class="text-center p-8 md:p-12 text-teal-900 min-h-screen flex flex-col justify-center">
+            <h2 class="font-alice text-2xl">Walimatul 'Ursy</h2>
+            <h1 class="font-tangerine text-7xl my-4">Muhlis & Yuyun</h1>
+            <p class="font-semibold">21 Desember 2025</p>
+            <div class="w-24 h-px bg-teal-200 mx-auto my-8"></div>
+            <div class="max-w-md mx-auto">
+                 <p dir="rtl" class="text-xl leading-loose my-4">وَمِنْ ءَايَٰتِهِۦٓ أَنْ خَلَقَ لَكُم مِّنْ أَنفُسِكُمْ أَزْوَٰجًا لِّتَسْكُنُوٓا۟ إِلَيْهَا وَجَعَلَ بَيْنَكُم مَّوَدَّةً وَرَحْمَةً ۚ إِنَّ فِى ذَٰلِكَ لَءَايَٰتٍ لِّقَوْمٍ يَتَفَكَّرُونَ</p>
+                <p class="text-sm italic leading-relaxed">
+                    "Dan di antara tanda-tanda (kebesaran)-Nya ialah Dia menciptakan pasangan-pasangan untukmu dari jenismu sendiri, agar kamu cenderung dan merasa tenteram kepadanya, dan Dia menjadikan di antaramu rasa kasih dan sayang. Sungguh, pada yang demikian itu benar-benar terdapat tanda-tanda (kebesaran Allah) bagi kaum yang berpikir."
+                </p>
+                <p class="mt-4 text-xs">(QS. Ar-Rum: 21)</p>
+            </div>
+        </section>
+
+        <!-- === SECTION PEMBUKA & MEMPELAI === -->
+        <section id="home" class="text-center p-8 md:p-12 text-teal-900">
+            <p class="mb-4 mt-8">Assalamu'alaikum Warahmatullahi Wabarakatuh</p>
+            <p class="text-sm leading-relaxed">
+                Maha suci Allah yang telah menciptakan makhluk-Nya berpasang-pasangan. Dengan memohon rahmat dan ridho-Nya, kami bermaksud menyelenggarakan pernikahan kami:
+            </p>
+            <div class="my-10">
+                <h2 class="font-tangerine text-6xl text-teal-800">Muhlis</h2>
+                <p class="text-sm mt-1">Putra dari</p>
+                <p class="text-sm mt-1">Bapak Imam Rokhani & Ibu Sumarni</p>
+                <p class="font-tangerine text-5xl my-4">&</p>
+                <h2 class="font-tangerine text-6xl text-teal-800">Yuyun Musyarofah</h2>
+                <p class="text-sm mt-1">Putri dari</p>
+                <p class="text-sm mt-1">Bapak Cipto Topik Hidayat & Ibu Siti Sunarti</p>
+            </div>
+        </section>
+
+        <!-- === SECTION ACARA & HITUNG MUNDUR === -->
+        <section id="event" class="bg-teal-800 text-white text-center p-8 md:p-12">
+            <div id="countdown" data-date="2025-12-21T09:00:00" class="grid grid-cols-4 gap-4 max-w-sm mx-auto mb-8 font-alice">
+                <div><div id="days" class="text-4xl font-bold">0</div><div class="text-xs">Hari</div></div>
+                <div><div id="hours" class="text-4xl font-bold">0</div><div class="text-xs">Jam</div></div>
+                <div><div id="minutes" class="text-4xl font-bold">0</div><div class="text-xs">Menit</div></div>
+                <div><div id="seconds" class="text-4xl font-bold">0</div><div class="text-xs">Detik</div></div>
+            </div>
+
+            <a id="save-date-button" href="#" target="_blank" class="inline-block bg-white/20 hover:bg-white/30 text-white font-semibold py-3 px-6 rounded-lg shadow-md flex items-center mx-auto transition-transform transform hover:scale-105 backdrop-blur-sm">
+                <i data-lucide="calendar-plus" class="mr-2 w-5 h-5"></i>
+                Simpan Tanggal
+            </a>
+
+            <div class="grid md:grid-cols-2 gap-8 text-left mt-12">
+                <div class="bg-white/10 p-6 rounded-lg custom-shadow backdrop-blur-sm">
+                    <i data-lucide="gem" class="w-10 h-10 mb-4 text-white"></i>
+                    <h3 class="font-alice text-2xl font-bold">Akad Nikah</h3>
+                    <p class="mt-4">Minggu, 21 Desember 2025</p>
+                    <p>09:00 - 11:00 WIB</p>
+                    <p class="mt-2 font-semibold">Lokasi Akad</p>
+                    <p class="text-sm">Dsn. 1 Mendiri RT 1 RW 7 ,Kutawis, Kec. Bukateja, Kabupaten Purbalingga, Jawa Tengah</p>
+                    <a href="#" class="inline-block bg-white text-teal-800 font-semibold py-2 px-4 rounded-lg mt-4 text-sm hover:bg-gray-200" target="_blank">
+                        <i data-lucide="map-pin" class="inline w-4 h-4 mr-1"></i>Lihat Peta
+                    </a>
+                </div>
+                <div class="bg-white/10 p-6 rounded-lg custom-shadow backdrop-blur-sm">
+                    <i data-lucide="glass-water" class="w-10 h-10 mb-4 text-white"></i>
+                    <h3 class="font-alice text-2xl font-bold">Resepsi</h3>
+                    <p class="mt-4">Minggu, 21 Desember 2025</p>
+                    <p>13:00 - Selesai</p>
+                    <p class="mt-2 font-semibold">Lokasi Resepsi</p>
+                    <p class="text-sm">Alamat Lengkap Lokasi Resepsi.</p>
+                     <a href="#" class="inline-block bg-white text-teal-800 font-semibold py-2 px-4 rounded-lg mt-4 text-sm hover:bg-gray-200" target="_blank">
+                        <i data-lucide="map-pin" class="inline w-4 h-4 mr-1"></i>Lihat Peta
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- === SECTION TASYAKURAN === -->
+        <section id="tasyakuran" class="bg-teal-50 text-teal-900 text-center p-8 md:p-12">
+            <h2 class="font-alice text-3xl font-bold mb-8">Turut Mengundang (Tasyakuran)</h2>
+            <div class="grid md:grid-cols-2 gap-8 text-left">
+                <div class="bg-white p-6 rounded-lg custom-shadow">
+                    <i data-lucide="home" class="w-10 h-10 mb-4 text-teal-700"></i>
+                    <h3 class="font-alice text-2xl font-bold">Keluarga Mempelai Pria</h3>
+                    <p class="mt-4">Jum'at-Ahad,</p>
+                    <p>19-20 Desember 2025</p>
+                    <p class="mt-2 font-semibold">Di Kediaman Mempelai Pria</p>
+                    <p class="text-sm">Pandansari RT 9 RW 4, Kejobong, Purbalingga.</p>
+                    <div class="mt-4 rounded-lg overflow-hidden border">
+                        <iframe src="https://www.google.com/maps/embed?pb=!1m10!1m8!1m3!1d368.9516798944525!2d109.48116332846585!3d-7.410132075488517!3m2!1i1024!2i768!4f13.1!5e1!3m2!1sid!2sid!4v1758869098572!5m2!1sid!2sid" class="w-full" height="250" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                    </div>
+                    <a href="https://maps.app.goo.gl/9d3Fgs6KHXQpQ11h8" class="inline-block bg-teal-700 text-white font-semibold py-2 px-4 rounded-lg mt-4 text-sm hover:bg-teal-800" target="_blank">
+                        <i data-lucide="map-pin" class="inline w-4 h-4 mr-1"></i>Buka di Google Maps
+                    </a>
+                </div>
+                <div class="bg-white p-6 rounded-lg custom-shadow">
+                    <i data-lucide="home" class="w-10 h-10 mb-4 text-teal-700"></i>
+                    <h3 class="font-alice text-2xl font-bold">Keluarga Mempelai Wanita</h3>
+                    <p class="mt-4">Ahad,</p>
+                    <p>21 Desember 2025</p>
+                    <p class="mt-2 font-semibold">Di Kediaman Mempelai Wanita</p>
+                    <p class="text-sm">Mendiri RT 1 RW 7 Kutawis, Bukateja, Purbalingga</p>
+                    <div class="mt-4 rounded-lg overflow-hidden border">
+                        <iframe src="https://www.google.com/maps/embed?pb=!1m10!1m8!1m3!1d737.897426584839!2d109.49564640041504!3d-7.413655283576904!3m2!1i1024!2i768!4f13.1!5e1!3m2!1sid!2sid!4v1758869008563!5m2!1sid!2sid" class="w-full" height="250" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                    </div>
+                     <a href="https://maps.app.goo.gl/wUaMDuupH6HbxDtJA" class="inline-block bg-teal-700 text-white font-semibold py-2 px-4 rounded-lg mt-4 text-sm hover:bg-teal-800" target="_blank">
+                        <i data-lucide="map-pin" class="inline w-4 h-4 mr-1"></i>Buka di Google Maps
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- === SECTION HADIAH === -->
+        <section id="gift" class="p-8 md:p-12 text-center text-teal-900 bg-teal-50">
+             <h2 class="font-alice text-3xl font-bold mb-4">Kirim Hadiah</h2>
+             <p class="text-sm max-w-md mx-auto">Doa restu Anda merupakan karunia yang sangat berarti bagi kami. Namun jika memberi adalah ungrapan tanda kasih, Anda dapat memberi kado secara cashless.</p>
+             <div class="max-w-sm mx-auto bg-white p-6 rounded-lg mt-8 text-left custom-shadow">
+                <i data-lucide="credit-card" class="mx-auto w-12 h-12 text-teal-700 block text-center mb-4"></i>
+                <p class="font-bold text-center">Bank [Nama Bank]</p>
+                <p class="text-center text-sm">a.n. Muhlis / Yuyun Musyarofah</p>
+                <div class="bg-gray-100 p-3 rounded-lg flex justify-between items-center mt-2">
+                    <span id="norek" class="font-mono">[Nomor Rekening]</span>
+                    <button onclick="copyToClipboard('norek', 'Nomor rekening berhasil disalin!')" class="bg-teal-700 text-white px-3 py-1 text-xs rounded hover:bg-teal-800">Salin</button>
+                </div>
+             </div>
+        </section>
+
+        <!-- === SECTION RSVP & UCAPAN === -->
+        <section id="rsvp" class="p-8 md:p-12 text-teal-900">
+            <h2 class="font-alice text-3xl font-bold mb-4 text-center">Ucapan & Doa</h2>
+            <div id="rsvp-container" class="max-w-md mx-auto bg-white p-6 rounded-lg custom-shadow">
+                <form id="rsvp-form">
+                    <div class="mb-4">
+                        <label for="nama" class="block text-sm font-medium mb-1">Nama</label>
+                        <input type="text" id="nama" name="nama" class="w-full border-gray-300 rounded-md shadow-sm" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="ucapan" class="block text-sm font-medium mb-1">Ucapan & Doa</label>
+                        <textarea id="ucapan" name="ucapan" rows="4" class="w-full border-gray-300 rounded-md shadow-sm" required></textarea>
+                    </div>
+                    <button type="submit" class="w-full bg-teal-700 text-white font-semibold py-2 px-4 rounded-lg hover:bg-teal-800">Kirim Ucapan</button>
+                </form>
+            </div>
+
+            <div id="wishes-container" class="max-w-md mx-auto mt-8 bg-white p-4 rounded-lg custom-shadow max-h-80 overflow-y-auto">
+                <div id="wishes-list"></div>
+                <p id="no-wishes" class="text-center text-gray-500 text-sm">Jadilah yang pertama mengirim ucapan!</p>
+            </div>
+        </section>
+
+        <!-- === FOOTER === -->
+        <footer class="text-center p-8 text-teal-900 mb-24">
+            <p class="text-sm">Merupakan suatu kehormatan dan kebahagiaan bagi kami sekeluarga apabila Bapak/Ibu/Saudara/i berkenan hadir untuk memberikan doa restu.</p>
+            <p class="mt-6">Atas kehadiran dan doa restunya kami ucapkan terima kasih.</p>
+            <p class="mt-2 mb-8">Wassalamu'alaikum Warahmatullahi Wabarakatuh</p>
+            <p class="font-tangerine text-5xl">Muhlis & Yuyun</p>
+        </footer>
+    </main>
+
+    <!-- === NAVIGASI BAWAH & KONTROL MUSIK === -->
+    <div id="bottom-nav" class="hidden fixed bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-sm z-40">
+        <div class="bg-white shadow-xl rounded-full p-1 flex justify-around items-center text-gray-800">
+            <a href="#home" class="p-1.5 rounded-full hover:bg-teal-100"><i data-lucide="home"></i></a>
+            <a href="#event" class="p-1.5 rounded-full hover:bg-teal-100"><i data-lucide="calendar-days"></i></a>
+            <a href="#tasyakuran" class="p-1.5 rounded-full hover:bg-teal-100"><i data-lucide="map"></i></a>
+            <a href="#gift" class="p-1.5 rounded-full hover:bg-teal-100"><i data-lucide="gift"></i></a>
+            <a href="#rsvp" class="p-1.5 rounded-full hover:bg-teal-100"><i data-lucide="book-heart"></i></a>
+        </div>
+    </div>
+
+    <button id="music-toggle" class="hidden fixed bottom-20 right-4 bg-white shadow-xl w-12 h-12 rounded-full z-40 flex justify-center items-center text-gray-800">
+        <i id="music-icon" data-lucide="music-2"></i>
+    </button>
+    
+    <audio id="background-music" loop src="wedding-nasheed.mp3"></audio>
+
+    <!-- Pop up notifikasi -->
+    <div id="notification" class="hidden fixed top-5 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-sm py-2 px-4 rounded-full shadow-lg z-50">
+        <p>Teks notifikasi</p>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+      import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyA07UFw5d0QDY_LiaSAzn941_vzYSnqqdo",
+        authDomain: "bukutamuwursy.firebaseapp.com",
+        projectId: "bukutamuwursy",
+        storageBucket: "bukutamuwursy.firebasestorage.app",
+        messagingSenderId: "959885521923",
+        appId: "1:959885521923:web:1092c5f7647658e3ce4a36",
+        measurementId: "G-W9ZK0CKSDT"
+      };
+      
+      const rsvpContainer = document.getElementById('rsvp-container');
+      const wishesContainer = document.getElementById('wishes-container');
+
+      function showFirebaseError(message) {
+        rsvpContainer.innerHTML = `<div class="text-center text-sm text-red-700 bg-red-100 p-4 rounded-lg">${message}</div>`;
+        wishesContainer.style.display = 'none';
+      }
+
+      if (firebaseConfig.apiKey.includes("YOUR_API_KEY")) {
+        console.warn("Firebase belum dikonfigurasi.");
+        showFirebaseError("Fitur buku tamu belum aktif. Silakan isi konfigurasi Firebase pada kode undangan.");
+      } else {
+        try {
+          const app = initializeApp(firebaseConfig);
+          const db = getFirestore(app);
+          const wishesCollection = collection(db, "bukuTamu");
+          const rsvpForm = document.getElementById('rsvp-form');
+
+          rsvpForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                await addDoc(wishesCollection, {
+                    nama: rsvpForm.nama.value,
+                    ucapan: rsvpForm.ucapan.value,
+                    createdAt: new Date()
+                });
+                rsvpForm.reset();
+                showNotification('Ucapan berhasil dikirim!');
+            } catch (error) {
+                console.error("Gagal mengirim ucapan: ", error);
+                showNotification('Gagal mengirim ucapan.', true);
+            }
+          });
+
+          const q = query(wishesCollection, orderBy("createdAt", "desc"));
+          onSnapshot(q, (snapshot) => {
+            const wishesList = document.getElementById('wishes-list');
+            const noWishesEl = document.getElementById('no-wishes');
+            wishesList.innerHTML = '';
+            if (snapshot.empty) {
+                noWishesEl.style.display = 'block';
+            } else {
+                noWishesEl.style.display = 'none';
+                snapshot.forEach(doc => {
+                    const wish = doc.data();
+                    const wishEl = document.createElement('div');
+                    wishEl.className = 'border-b border-gray-200 py-3';
+                    wishEl.innerHTML = `<p class="font-semibold text-teal-800">${wish.nama}</p><p class="text-gray-600 text-sm mt-1">${wish.ucapan}</p>`;
+                    wishesList.appendChild(wishEl);
+                });
+            }
+          }, (error) => {
+             console.error("Koneksi Firestore gagal: ", error);
+             showFirebaseError("Gagal terhubung ke database. Pastikan <strong>konfigurasi Firebase</strong> dan <strong>aturan keamanan (Rules)</strong> Anda sudah benar.");
+          });
+        } catch (error) { 
+            console.error("Inisialisasi Firebase gagal: ", error);
+            showFirebaseError("Gagal menginisialisasi Firebase. Periksa kembali apakah <strong>konfigurasi Firebase</strong> Anda sudah benar.");
+        }
+      }
+    </script>
+    
+    <script>
+  const notification = document.getElementById('notification');
+  function showNotification(message, isError = false) {
+      notification.querySelector('p').textContent = message;
+      notification.classList.remove('hidden');
+      notification.classList.toggle('bg-red-500', isError);
+      setTimeout(() => { notification.classList.add('hidden'); }, 3000);
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    lucide.createIcons();
+
+    const cover = document.getElementById('cover');
+    const mainContent = document.getElementById('main-content');
+    const openButton = document.getElementById('open-invitation');
+    const music = document.getElementById('background-music');
+    const musicToggle = document.getElementById('music-toggle');
+    const musicIcon = document.getElementById('music-icon');
+    const bottomNav = document.getElementById('bottom-nav');
+    const countdownEl = document.getElementById('countdown');
+    const targetDate = new Date(countdownEl.dataset.date);
+
+    // ==== Nama tamu ====
+    const urlParams = new URLSearchParams(window.location.search);
+    const guest = urlParams.get('nama');
+    if (guest) {
+      document.getElementById('guest-name').textContent = guest.replace(/\+/g, ' ');
+      const inputNama = document.getElementById('nama');
+      if (inputNama) inputNama.value = guest.replace(/\+/g, ' ');
+    }
+
+    // ==== Format kalender ====
+    function formatToUTC(date, hours, minutes) {
+      let d = new Date(date);
+      d.setUTCHours(hours, minutes, 0, 0);
+      return d.toISOString().replace(/-|:|\.\d+/g, "");
+    }
+    const eventStartDate = formatToUTC(targetDate, 2, 0);
+    const eventEndDate = formatToUTC(targetDate, 14, 0);
+    const calendarLink = `https://www.google.com/calendar/render?action=TEMPLATE&text=Pernikahan+Muhlis+%26+Yuyun&dates=${eventStartDate}/${eventEndDate}&details=Jangan+lupa+datang+ke+acara+pernikahan+kami!&location=Kutawis,+Purbalingga`;
+    document.getElementById('save-date-button').href = calendarLink;
+
+    // ==== Tanggal di cover ====
+    const dateOptions = { year: 'numeric', month: 'long', day: 'numeric' };
+    document.getElementById('wedding-date-cover').textContent = targetDate.toLocaleString('id-ID', dateOptions);
+
+    // ==== Buka undangan ====
+    openButton.addEventListener('click', () => {
+      cover.classList.add('cover-hidden');
+      setTimeout(() => {
+        cover.style.display = 'none';
+        mainContent.classList.remove('opacity-0');
+        mainContent.classList.add('fade-in');
+        bottomNav.classList.remove('hidden');
+        musicToggle.classList.remove('hidden');
+        playMusic();
+
+        // Izinkan scroll
+        document.body.style.overflow = 'auto';
+        document.body.style.height = 'auto';
+        document.documentElement.style.overflow = 'auto';
+        document.documentElement.style.height = 'auto';
+      }, 300);
+    });
+
+    // ==== Musik dengan ikon berputar ====
+    let isPlaying = false;
+    music.loop = true; // ubah ke true jika ingin loop
+
+    function playMusic() {
+      music.play().then(() => {
+        isPlaying = true;
+        updateMusicIcon();
+      }).catch(err => console.warn('Autoplay diblokir browser:', err));
+    }
+
+    function pauseMusic() {
+      music.pause();
+      isPlaying = false;
+      updateMusicIcon();
+    }
+
+    function updateMusicIcon() {
+      if (isPlaying) {
+        musicIcon.setAttribute('data-lucide', 'music-2');
+        musicToggle.classList.add('spinning');
+      } else {
+        musicIcon.setAttribute('data-lucide', 'music-2');
+        musicToggle.classList.remove('spinning');
+      }
+      lucide.createIcons();
+    }
+
+    musicToggle.addEventListener('click', () => {
+      isPlaying ? pauseMusic() : playMusic();
+      musicToggle.classList.add('scale-90');
+      setTimeout(() => musicToggle.classList.remove('scale-90'), 150);
+    });
+
+    // Saat lagu selesai
+    music.addEventListener('ended', () => {
+      isPlaying = false;
+      updateMusicIcon();
+    });
+
+    // ==== Countdown ====
+    function updateCountdown() {
+      const now = new Date();
+      const diff = targetDate - now;
+      if (diff <= 0) return;
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+      const minutes = Math.floor((diff / (1000 * 60)) % 60);
+      const seconds = Math.floor((diff / 1000) % 60);
+      document.getElementById('days').textContent = days;
+      document.getElementById('hours').textContent = hours;
+      document.getElementById('minutes').textContent = minutes;
+      document.getElementById('seconds').textContent = seconds;
+    }
+    updateCountdown();
+    setInterval(updateCountdown, 1000);
+  });
+</script>
+
+<style>
+  /* Efek lembut */
+  .fade-in {
+    animation: fadeIn 1.2s ease forwards;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Animasi ikon musik berputar */
+  @keyframes rotateMusic {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  .spinning svg {
+    animation: rotateMusic 3s linear infinite;
+  }
+
+  .scale-90 {
+    transform: scale(0.9);
+    transition: transform 0.2s ease;
+  }
+</style>
+</body>
+</html>

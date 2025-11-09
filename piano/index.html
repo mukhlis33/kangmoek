@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Piano Virtual dengan Suara</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .orientation-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .orientation-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 50px;
+            padding: 12px 25px;
+            color: white;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .orientation-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .orientation-btn.active {
+            background: rgba(255, 255, 255, 0.4);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+        }
+
+        .piano-container {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            overflow-x: auto;
+        }
+
+        .piano {
+            display: flex;
+            position: relative;
+            height: 300px;
+            margin: 0 auto;
+            user-select: none;
+        }
+
+        .key {
+            position: relative;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding-bottom: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.1s ease;
+        }
+
+        .key:active, .key.active {
+            transform: translateY(2px);
+        }
+
+        .white {
+            height: 100%;
+            background: linear-gradient(to bottom, #fff 0%, #f5f5f5 100%);
+            border: 1px solid #ddd;
+            border-radius: 0 0 8px 8px;
+            flex: 1;
+            z-index: 1;
+            color: #333;
+            box-shadow: inset 0 -5px 10px rgba(0, 0, 0, 0.1);
+            margin: 0 1px;
+            min-width: 50px;
+        }
+
+        .white:active, .white.active {
+            background: linear-gradient(to bottom, #f0f0f0 0%, #e0e0e0 100%);
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .black {
+            height: 65%;
+            background: linear-gradient(to bottom, #333 0%, #000 100%);
+            border-radius: 0 0 6px 6px;
+            position: absolute;
+            top: 0;
+            z-index: 2;
+            width: 60%;
+            color: white;
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding-bottom: 15px;
+        }
+
+        .black:active, .black.active {
+            background: linear-gradient(to bottom, #000 0%, #222 100%);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.7);
+        }
+
+        .controls {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .control-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 10px;
+            padding: 12px 20px;
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px 20px;
+            border-radius: 50px;
+            backdrop-filter: blur(10px);
+        }
+
+        .volume-control input {
+            width: 150px;
+        }
+
+        .info-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+            width: 100%;
+            max-width: 800px;
+            backdrop-filter: blur(10px);
+        }
+
+        .info-panel h2 {
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .info-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .info-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        /* Responsif untuk perangkat mobile */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .piano {
+                height: 220px;
+            }
+            
+            .white {
+                min-width: 40px;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .volume-control {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .piano {
+                height: 180px;
+            }
+            
+            .white {
+                min-width: 30px;
+                font-size: 0.8rem;
+            }
+            
+            .black {
+                font-size: 0.7rem;
+            }
+            
+            .orientation-btn, .control-btn {
+                padding: 10px 15px;
+                font-size: 0.9rem;
+            }
+        }
+
+        /* Mode landscape dipaksa */
+        body.landscape {
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+        }
+
+        body.landscape .piano-container {
+            max-width: 1000px;
+        }
+
+        /* Mode portrait dipaksa */
+        body.portrait {
+            background: linear-gradient(135deg, #b21f1f, #fdbb2d);
+        }
+
+        body.portrait .piano-container {
+            max-width: 600px;
+        }
+        
+        .keyboard-hint {
+            margin-top: 10px;
+            text-align: center;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body class="portrait">
+    <div class="container">
+        <div class="header">
+            <h1>Piano Virtual dengan Suara</h1>
+            <p>Piano 2 oktaf yang responsif dengan suara asli</p>
+        </div>
+
+        <div class="orientation-controls">
+            <button class="orientation-btn active" id="portraitBtn">Mode Portrait</button>
+            <button class="orientation-btn" id="landscapeBtn">Mode Landscape</button>
+            <button class="orientation-btn" id="autoBtn">Mode Otomatis</button>
+        </div>
+
+        <div class="piano-container">
+            <div class="piano" id="piano">
+                <!-- Piano keys akan di-generate oleh JavaScript -->
+            </div>
+            <div class="keyboard-hint">
+                Gunakan keyboard: A,S,D,F,G,H,J untuk tombol putih, W,E,T,Y,U untuk tombol hitam
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="control-btn" id="volumeUp">
+                <span>🔊 Volume +</span>
+            </button>
+            <button class="control-btn" id="volumeDown">
+                <span>🔉 Volume -</span>
+            </button>
+            <button class="control-btn" id="sustainBtn">
+                <span>🎵 Sustain</span>
+            </button>
+            <div class="volume-control">
+                <span>🔊</span>
+                <input type="range" id="volumeSlider" min="0" max="100" value="70">
+                <span id="volumeValue">70%</span>
+            </div>
+        </div>
+
+        <div class="info-panel">
+            <h2>Informasi Piano</h2>
+            <div class="info-content">
+                <div class="info-item">
+                    <h3>Tombol Putih (Natural)</h3>
+                    <p>Piano ini memiliki 15 tombol putih yang mewakili nada C, D, E, F, G, A, B dalam 2 oktaf.</p>
+                </div>
+                <div class="info-item">
+                    <h3>Tombol Hitam (Kromatis)</h3>
+                    <p>Piano ini memiliki 10 tombol hitam yang mewakili nada C#/Db, D#/Eb, F#/Gb, G#/Ab, A#/Bb.</p>
+                </div>
+                <div class="info-item">
+                    <h3>Cara Bermain</h3>
+                    <p>Klik tombol dengan mouse atau gunakan keyboard (A,S,D,F,G,H,J untuk tombol putih).</p>
+                </div>
+                <div class="info-item">
+                    <h3>Fitur</h3>
+                    <p>Piano ini responsif, dapat dirotasi, dan memiliki kontrol volume serta efek sustain.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const piano = document.getElementById('piano');
+            const volumeSlider = document.getElementById('volumeSlider');
+            const volumeValue = document.getElementById('volumeValue');
+            const portraitBtn = document.getElementById('portraitBtn');
+            const landscapeBtn = document.getElementById('landscapeBtn');
+            const autoBtn = document.getElementById('autoBtn');
+            const volumeUpBtn = document.getElementById('volumeUp');
+            const volumeDownBtn = document.getElementById('volumeDown');
+            const sustainBtn = document.getElementById('sustainBtn');
+            const body = document.body;
+
+            // Konfigurasi nada piano (2 oktaf)
+            const notes = [
+                // Oktaf pertama
+                { note: 'C4', type: 'white', key: 'A', freq: 261.63 },
+                { note: 'C#4', type: 'black', key: 'W', freq: 277.18 },
+                { note: 'D4', type: 'white', key: 'S', freq: 293.66 },
+                { note: 'D#4', type: 'black', key: 'E', freq: 311.13 },
+                { note: 'E4', type: 'white', key: 'D', freq: 329.63 },
+                { note: 'F4', type: 'white', key: 'F', freq: 349.23 },
+                { note: 'F#4', type: 'black', key: 'T', freq: 369.99 },
+                { note: 'G4', type: 'white', key: 'G', freq: 392.00 },
+                { note: 'G#4', type: 'black', key: 'Y', freq: 415.30 },
+                { note: 'A4', type: 'white', key: 'H', freq: 440.00 },
+                { note: 'A#4', type: 'black', key: 'U', freq: 466.16 },
+                { note: 'B4', type: 'white', key: 'J', freq: 493.88 },
+                // Oktaf kedua
+                { note: 'C5', type: 'white', key: 'K', freq: 523.25 },
+                { note: 'C#5', type: 'black', key: 'O', freq: 554.37 },
+                { note: 'D5', type: 'white', key: 'L', freq: 587.33 },
+                { note: 'D#5', type: 'black', key: 'P', freq: 622.25 },
+                { note: 'E5', type: 'white', key: ';', freq: 659.25 },
+                { note: 'F5', type: 'white', key: '\'', freq: 698.46 },
+                { note: 'F#5', type: 'black', key: ']', freq: 739.99 },
+                { note: 'G5', type: 'white', key: 'Z', freq: 783.99 },
+                { note: 'G#5', type: 'black', key: 'X', freq: 830.61 },
+                { note: 'A5', type: 'white', key: 'C', freq: 880.00 },
+                { note: 'A#5', type: 'black', key: 'V', freq: 932.33 },
+                { note: 'B5', type: 'white', key: 'B', freq: 987.77 },
+                { note: 'C6', type: 'white', key: 'N', freq: 1046.50 }
+            ];
+
+            // Buat Audio Context untuk menghasilkan suara
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            let volume = 0.7;
+            let sustainActive = false;
+            let activeOscillators = {};
+
+            // Buat tombol piano
+            notes.forEach((noteObj, index) => {
+                const key = document.createElement('div');
+                key.className = `key ${noteObj.type}`;
+                key.dataset.note = noteObj.note;
+                key.dataset.key = noteObj.key;
+                key.dataset.freq = noteObj.freq;
+                
+                const noteLabel = document.createElement('span');
+                noteLabel.textContent = noteObj.note.replace(/\d/, '');
+                key.appendChild(noteLabel);
+                
+                piano.appendChild(key);
+                
+                // Atur posisi tombol hitam dengan benar
+                if (noteObj.type === 'black') {
+                    // Hitung posisi berdasarkan indeks tombol putih sebelumnya
+                    let whiteKeyCount = 0;
+                    for (let i = 0; i < index; i++) {
+                        if (notes[i].type === 'white') whiteKeyCount++;
+                    }
+                    
+                    // Posisi tombol hitam di antara tombol putih
+                    // Setiap tombol putih memiliki lebar 100%/14 (karena ada 14 tombol putih dalam 2 oktaf)
+                    // Tombol hitam ditempatkan di posisi tertentu relatif terhadap tombol putih
+                    const whiteKeyWidth = 100 / 14;
+                    let position = 0;
+                    
+                    // Tentukan posisi berdasarkan nada
+                    if (noteObj.note.includes('C#')) position = whiteKeyWidth * 1 - 3;
+                    else if (noteObj.note.includes('D#')) position = whiteKeyWidth * 2 - 3;
+                    else if (noteObj.note.includes('F#')) position = whiteKeyWidth * 5 - 3;
+                    else if (noteObj.note.includes('G#')) position = whiteKeyWidth * 6 - 3;
+                    else if (noteObj.note.includes('A#')) position = whiteKeyWidth * 8 - 3;
+                    
+                    key.style.left = `calc(${position}% + 2%)`;
+                    key.style.width = `${whiteKeyWidth * 0.6}%`;
+                }
+            });
+
+            // Fungsi untuk memainkan nada dengan Web Audio API
+            function playNote(note, freq) {
+                const key = document.querySelector(`.key[data-note="${note}"]`);
+                if (key) {
+                    key.classList.add('active');
+                    
+                    // Buat oscillator
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    oscillator.type = 'sine';
+                    oscillator.frequency.value = freq;
+                    
+                    // Atur volume
+                    gainNode.gain.value = volume;
+                    
+                    // Mulai memainkan nada
+                    oscillator.start();
+                    
+                    // Simpan oscillator untuk sustain
+                    activeOscillators[note] = { oscillator, gainNode };
+                    
+                    // Hentikan nada setelah waktu tertentu jika sustain tidak aktif
+                    if (!sustainActive) {
+                        setTimeout(() => {
+                            stopNote(note);
+                        }, 500);
+                    }
+                }
+            }
+
+            // Fungsi untuk menghentikan nada
+            function stopNote(note) {
+                const key = document.querySelector(`.key[data-note="${note}"]`);
+                if (key) {
+                    key.classList.remove('active');
+                }
+                
+                if (activeOscillators[note]) {
+                    // Fade out untuk menghindari suara putus tiba-tiba
+                    activeOscillators[note].gainNode.gain.exponentialRampToValueAtTime(
+                        0.001, 
+                        audioContext.currentTime + 0.1
+                    );
+                    
+                    setTimeout(() => {
+                        if (activeOscillators[note]) {
+                            activeOscillators[note].oscillator.stop();
+                            delete activeOscillators[note];
+                        }
+                    }, 100);
+                }
+            }
+
+            // Event listener untuk tombol piano
+            document.querySelectorAll('.key').forEach(key => {
+                key.addEventListener('mousedown', () => {
+                    const note = key.dataset.note;
+                    const freq = parseFloat(key.dataset.freq);
+                    playNote(note, freq);
+                });
+                
+                key.addEventListener('mouseup', () => {
+                    if (!sustainActive) {
+                        stopNote(key.dataset.note);
+                    }
+                });
+                
+                key.addEventListener('mouseleave', () => {
+                    if (!sustainActive) {
+                        stopNote(key.dataset.note);
+                    }
+                });
+                
+                key.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    const note = key.dataset.note;
+                    const freq = parseFloat(key.dataset.freq);
+                    playNote(note, freq);
+                });
+                
+                key.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    if (!sustainActive) {
+                        stopNote(key.dataset.note);
+                    }
+                });
+            });
+
+            // Event listener untuk keyboard
+            document.addEventListener('keydown', (e) => {
+                const key = e.key.toUpperCase();
+                const noteObj = notes.find(note => note.key === key);
+                if (noteObj && !activeOscillators[noteObj.note]) {
+                    playNote(noteObj.note, noteObj.freq);
+                }
+            });
+
+            document.addEventListener('keyup', (e) => {
+                const key = e.key.toUpperCase();
+                const noteObj = notes.find(note => note.key === key);
+                if (noteObj && !sustainActive) {
+                    stopNote(noteObj.note);
+                }
+            });
+
+            // Kontrol volume
+            volumeSlider.addEventListener('input', () => {
+                volume = volumeSlider.value / 100;
+                volumeValue.textContent = `${volumeSlider.value}%`;
+            });
+
+            volumeUpBtn.addEventListener('click', () => {
+                let volumeInt = parseInt(volumeSlider.value);
+                if (volumeInt < 100) {
+                    volumeSlider.value = volumeInt + 10;
+                    volume = volumeSlider.value / 100;
+                    volumeValue.textContent = `${volumeSlider.value}%`;
+                }
+            });
+
+            volumeDownBtn.addEventListener('click', () => {
+                let volumeInt = parseInt(volumeSlider.value);
+                if (volumeInt > 0) {
+                    volumeSlider.value = volumeInt - 10;
+                    volume = volumeSlider.value / 100;
+                    volumeValue.textContent = `${volumeSlider.value}%`;
+                }
+            });
+
+            // Kontrol orientasi
+            portraitBtn.addEventListener('click', () => {
+                body.className = 'portrait';
+                setActiveOrientationButton(portraitBtn);
+            });
+
+            landscapeBtn.addEventListener('click', () => {
+                body.className = 'landscape';
+                setActiveOrientationButton(landscapeBtn);
+            });
+
+            autoBtn.addEventListener('click', () => {
+                body.className = '';
+                setActiveOrientationButton(autoBtn);
+            });
+
+            function setActiveOrientationButton(activeBtn) {
+                [portraitBtn, landscapeBtn, autoBtn].forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                activeBtn.classList.add('active');
+            }
+
+            // Sustain button
+            sustainBtn.addEventListener('click', () => {
+                sustainActive = !sustainActive;
+                sustainBtn.style.background = sustainActive 
+                    ? 'rgba(255, 255, 255, 0.4)' 
+                    : 'rgba(255, 255, 255, 0.2)';
+                
+                // Jika sustain dimatikan, hentikan semua nada yang sedang aktif
+                if (!sustainActive) {
+                    Object.keys(activeOscillators).forEach(note => {
+                        stopNote(note);
+                    });
+                }
+            });
+
+            // Deteksi orientasi layar untuk mode otomatis
+            function handleOrientationChange() {
+                if (body.className === '') {
+                    if (window.innerHeight > window.innerWidth) {
+                        body.classList.add('portrait');
+                    } else {
+                        body.classList.add('landscape');
+                    }
+                }
+            }
+
+            window.addEventListener('resize', handleOrientationChange);
+            handleOrientationChange(); // Panggil sekali saat pertama kali dimuat
+
+            // Hentikan semua suara saat meninggalkan halaman
+            window.addEventListener('beforeunload', () => {
+                Object.keys(activeOscillators).forEach(note => {
+                    stopNote(note);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

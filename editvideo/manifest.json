@@ -1,0 +1,10 @@
+
+{
+  "name": "Vidy.pro",
+  "short_name": "Vidy",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#121212",
+  "theme_color": "#121212",
+  "icons": []
+}

@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Penjernih Gambar Cerdas</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #4CAF50; /* Hijau terang */
+            --secondary-color: #f0f0f0; /* Abu-abu muda */
+            --text-color: #333;
+            --background-color: #ffffff;
+            --border-color: #e0e0e0;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            text-align: center;
+        }
+
+        .container {
+            background-color: var(--background-color);
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+            max-width: 900px;
+            width: 90%;
+            transition: all 0.3s ease-in-out;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        p {
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+
+        /* Upload Section */
+        #upload-section .drop-area {
+            border: 3px dashed var(--border-color);
+            border-radius: 10px;
+            padding: 50px 20px;
+            margin-bottom: 25px;
+            cursor: pointer;
+            transition: border-color 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #upload-section .drop-area.highlight {
+            border-color: var(--primary-color);
+            background-color: #e6ffe6;
+        }
+
+        .drop-area i {
+            font-size: 60px;
+            color: var(--border-color);
+            margin-bottom: 15px;
+        }
+
+        .drop-area p {
+            margin: 0;
+            font-size: 1.1em;
+            color: #777;
+        }
+
+        .upload-button {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 14px 28px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: 600;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            display: inline-block; /* Untuk menjaga padding dan margin */
+            margin-top: 15px; /* Spasi dari teks drop area */
+        }
+
+        .upload-button:hover {
+            background-color: #45a049;
+            transform: translateY(-2px);
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        /* Loading Section */
+        #loading-section {
+            display: none;
+            text-align: center;
+        }
+
+        .spinner {
+            border: 8px solid #f3f3f3;
+            border-top: 8px solid var(--primary-color);
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin: 30px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        #loading-message {
+            font-size: 1.2em;
+            color: #555;
+        }
+
+        /* Result Section */
+        #result-section {
+            display: none;
+            text-align: center;
+        }
+
+        .image-comparison {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-start; /* Align items at the start for better visual */
+            gap: 20px;
+            margin-top: 30px;
+            margin-bottom: 30px;
+            flex-wrap: wrap; /* Allow wrapping on smaller screens */
+        }
+
+        .image-box {
+            flex: 1;
+            min-width: 280px; /* Minimum width for each box */
+            max-width: 45%; /* Max width to allow two columns */
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            background-color: #f9f9f9;
+        }
+
+        .image-box h3 {
+            margin-top: 0;
+            color: #555;
+        }
+
+        .image-box img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 6px;
+            margin-top: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .download-button, .action-button {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            margin: 10px 5px;
+            display: inline-block;
+        }
+
+        .download-button:hover, .action-button:hover {
+            background-color: #45a049;
+            transform: translateY(-2px);
+        }
+
+        .action-button.secondary {
+            background-color: #6c757d;
+        }
+
+        .action-button.secondary:hover {
+            background-color: #5a6268;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .container {
+                padding: 25px;
+                width: 95%;
+            }
+            .image-comparison {
+                flex-direction: column;
+                align-items: center;
+            }
+            .image-box {
+                max-width: 100%;
+                margin-bottom: 20px;
+            }
+        }
+    </style>
+    <!-- Font Awesome untuk ikon (opsional, bisa diganti dengan SVG) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Halaman Unggah Gambar -->
+        <section id="upload-section">
+            <h1>Jernihkan Gambar Anda</h1>
+            <p>Unggah gambar Anda untuk mendapatkan hasil yang lebih jelas dan tajam secara otomatis.</p>
+            <div class="drop-area" id="dropArea">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <p>Seret & Lepas Gambar Anda di Sini</p>
+                <p>atau</p>
+                <input type="file" id="imageUpload" accept="image/*">
+                <button class="upload-button" onclick="document.getElementById('imageUpload').click()">Pilih Gambar</button>
+            </div>
+            <p style="font-size: 0.9em; color: #888;">Format yang didukung: JPG, PNG, WEBP.</p>
+        </section>
+
+        <!-- Halaman Loading/Proses -->
+        <section id="loading-section">
+            <div class="spinner"></div>
+            <h1>Memproses Gambar Anda...</h1>
+            <p id="loading-message">Mohon tunggu sebentar, gambar Anda sedang dijernihkan.</p>
+        </section>
+
+        <!-- Halaman Hasil Penjernihan -->
+        <section id="result-section">
+            <h1>Gambar Anda Telah Dijernihkan!</h1>
+            <div class="image-comparison">
+                <div class="image-box">
+                    <h3>Gambar Asli</h3>
+                    <img id="originalImage" src="" alt="Gambar Asli">
+                </div>
+                <div class="image-box">
+                    <h3>Gambar Dijernihkan</h3>
+                    <img id="enhancedImage" src="" alt="Gambar Dijernihkan">
+                </div>
+            </div>
+            <button class="download-button" id="downloadButton">Unduh Gambar</button>
+            <button class="action-button secondary" onclick="jernihkanLagi()">Jernihkan Lagi</button>
+        </section>
+    </div>
+
+    <script>
+        const uploadSection = document.getElementById('upload-section');
+        const loadingSection = document.getElementById('loading-section');
+        const resultSection = document.getElementById('result-section');
+        const imageUpload = document.getElementById('imageUpload');
+        const dropArea = document.getElementById('dropArea');
+        const originalImage = document.getElementById('originalImage');
+        const enhancedImage = document.getElementById('enhancedImage');
+        const downloadButton = document.getElementById('downloadButton');
+
+        let uploadedFile = null;
+
+        // --- Drag and Drop Functionality ---
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+            document.body.addEventListener(eventName, preventDefaults, false); // Prevent default for entire body
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, unhighlight, false);
+        });
+
+        function highlight() {
+            dropArea.classList.add('highlight');
+        }
+
+        function unhighlight() {
+            dropArea.classList.remove('highlight');
+        }
+
+        dropArea.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFiles(files);
+        }
+
+        // --- File Input Change ---
+        imageUpload.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+
+        function handleFiles(files) {
+            if (files.length === 0) return;
+
+            uploadedFile = files[0];
+            const reader = new FileReader();
+
+            reader.onload = function(event) {
+                originalImage.src = event.target.result; // Tampilkan gambar asli di halaman hasil
+                showLoading();
+                // Simulasikan proses API
+                setTimeout(() => {
+                    // Di sini Anda akan memanggil API backend Anda.
+                    // Contoh placeholder:
+                    // fetch('URL_API_PENJERNIH', {
+                    //     method: 'POST',
+                    //     body: uploadedFile, // Kirim file yang diunggah
+                    //     headers: {
+                    //         'Content-Type': 'image/jpeg' // Sesuaikan dengan jenis file
+                    //         // Tambahkan API Key atau otentikasi jika diperlukan
+                    //     }
+                    // })
+                    // .then(response => response.blob()) // atau .json() jika API mengembalikan URL gambar
+                    // .then(blob => {
+                    //     const enhancedImageUrl = URL.createObjectURL(blob);
+                    //     enhancedImage.src = enhancedImageUrl;
+                    //     downloadButton.href = enhancedImageUrl;
+                    //     showResult();
+                    // })
+                    // .catch(error => {
+                    //     console.error('Error:', error);
+                    //     alert('Terjadi kesalahan saat memproses gambar.');
+                    //     showUpload(); // Kembali ke halaman upload jika error
+                    // });
+
+                    // --- Simulasi Hasil ---
+                    // Menggunakan placeholder image untuk demonstrasi
+                    const dummyEnhancedImageUrl = 'https://via.placeholder.com/600x400/87CEEB/FFFFFF?text=Gambar+Dijernihkan';
+                    enhancedImage.src = dummyEnhancedImageUrl;
+                    downloadButton.href = dummyEnhancedImageUrl; // Set href untuk download
+                    downloadButton.download = `jernih_${uploadedFile.name || 'gambar'}`; // Nama file saat diunduh
+
+                    showResult();
+                }, 3000); // Simulasi 3 detik proses
+            };
+
+            reader.readAsDataURL(uploadedFile);
+        }
+
+        function showUpload() {
+            uploadSection.style.display = 'block';
+            loadingSection.style.display = 'none';
+            resultSection.style.display = 'none';
+        }
+
+        function showLoading() {
+            uploadSection.style.display = 'none';
+            loadingSection.style.display = 'block';
+            resultSection.style.display = 'none';
+        }
+
+        function showResult() {
+            uploadSection.style.display = 'none';
+            loadingSection.style.display = 'none';
+            resultSection.style.display = 'block';
+        }
+
+        function jernihkanLagi() {
+            showUpload();
+            // Reset gambar sebelumnya
+            originalImage.src = '';
+            enhancedImage.src = '';
+            uploadedFile = null;
+        }
+
+        // Initialize display
+        showUpload();
+    </script>
+</body>
+</html>
+

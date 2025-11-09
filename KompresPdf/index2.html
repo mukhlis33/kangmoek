@@ -1,0 +1,94 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Kompresi PDF by Kang Moek</title>
+  <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1 { color: #2c3e50; }
+    label, select, input { margin: 10px 0; display: block; }
+    button { padding: 10px 20px; background-color: #3498db; color: white; border: none; cursor: pointer; }
+    button:hover { background-color: #2980b9; }
+  </style>
+</head>
+<body>
+  <h1>Aplikasi Kompresi PDF</h1>
+  <label for="pdfFile">Unggah PDF:</label>
+  <input type="file" id="pdfFile" accept=".pdf">
+
+  <label for="mode">Pilih Mode Kompresi:</label>
+  <select id="mode">
+    <option value="150">Standar (DPI 150)</option>
+    <option value="72">Kecil (DPI 72)</option>
+    <option value="custom">Custom</option>
+  </select>
+
+  <div id="customDpiDiv" style="display:none;">
+    <label for="customDpi">Masukkan DPI:</label>
+    <input type="number" id="customDpi" value="100">
+  </div>
+
+  <button onclick="compressPDF()">Kompres PDF</button>
+  <p id="status"></p>
+
+  <script>
+    document.getElementById("mode").addEventListener("change", function() {
+      document.getElementById("customDpiDiv").style.display = this.value === "custom" ? "block" : "none";
+    });
+
+    async function compressPDF() {
+      const fileInput = document.getElementById("pdfFile");
+      const mode = document.getElementById("mode").value;
+      const customDpi = parseInt(document.getElementById("customDpi").value);
+      const status = document.getElementById("status");
+
+      if (!fileInput.files[0]) {
+        alert("Silakan unggah file PDF terlebih dahulu.");
+        return;
+      }
+
+      status.textContent = "Memproses PDF...";
+
+      const file = fileInput.files[0];
+      const arrayBuffer = await file.arrayBuffer();
+
+      const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+      const pdf = await loadingTask.promise;
+
+      const dpi = mode === "custom" ? customDpi : parseInt(mode);
+      const scale = dpi / 72;
+
+      const pdfDoc = await PDFLib.PDFDocument.create();
+
+      for (let i = 0; i < pdf.numPages; i++) {
+        const page = await pdf.getPage(i + 1);
+        const viewport = page.getViewport({ scale: scale });
+
+        const canvas = document.createElement("canvas");
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        const context = canvas.getContext("2d");
+
+        await page.render({ canvasContext: context, viewport: viewport }).promise;
+
+        const imgData = canvas.toDataURL("image/jpeg", 0.7);
+        const img = await pdfDoc.embedJpg(imgData);
+        const pagePdf = pdfDoc.addPage([canvas.width, canvas.height]);
+        pagePdf.drawImage(img, { x: 0, y: 0, width: canvas.width, height: canvas.height });
+      }
+
+      const compressedPdfBytes = await pdfDoc.save();
+      const blob = new Blob([compressedPdfBytes], { type: "application/pdf" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "pdf_terkompresi.pdf";
+      link.click();
+
+      status.textContent = "PDF berhasil dikompresi dan diunduh.";
+    }
+  </script>
+</body>
+</html>

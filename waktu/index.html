@@ -1,0 +1,254 @@
+import React, { useEffect, useRef, useState } from "react";
+
+// Single-file React component (default export) for a responsive Time app // Tailwind CSS assumed available in the host project // Features: Digital clock, Date display, Stopwatch (laps), Timer, Calendar with reminders, // Alarms & Reminders persisted in localStorage, Notification API and in-page audio alarm.
+
+export default function TimeApp() { // --- Layout constraints: fixed-width card centered, same size on desktop & mobile --- const CARD_MAX_WIDTH = "max-w-md"; // keeps similar size on large screens
+
+// --- Clock --- const [now, setNow] = useState(new Date()); useEffect(() => { const id = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(id); }, []);
+
+// --- Tabs / bottom nav --- const tabs = ["Clock", "Stopwatch", "Timer", "Calendar"]; const [activeTab, setActiveTab] = useState("Clock");
+
+// --- Stopwatch --- const [swRunning, setSwRunning] = useState(false); const [swTime, setSwTime] = useState(0); // ms const swStartRef = useRef(null); const [laps, setLaps] = useState([]);
+
+useEffect(() => { let raf; function tick() { if (swRunning && swStartRef.current !== null) { setSwTime(Date.now() - swStartRef.current); } raf = requestAnimationFrame(tick); } raf = requestAnimationFrame(tick); return () => cancelAnimationFrame(raf); }, [swRunning]);
+
+function swStart() { swStartRef.current = Date.now() - swTime; setSwRunning(true); } function swPause() { setSwRunning(false); } function swReset() { setSwRunning(false); setSwTime(0); setLaps([]); swStartRef.current = null; } function swLap() { setLaps((s) => [swTime, ...s]); }
+
+// --- Timer --- const [timerMs, setTimerMs] = useState(0); const [timerRunning, setTimerRunning] = useState(false); const timerRef = useRef(null); useEffect(() => { if (timerRunning && timerMs > 0) { timerRef.current = setInterval(() => { setTimerMs((t) => { if (t <= 1000) { clearInterval(timerRef.current); setTimerRunning(false); triggerAlarm("Timer finished"); return 0; } return t - 1000; }); }, 1000); } return () => clearInterval(timerRef.current); }, [timerRunning]);
+
+function msToClock(ms) { const totalSec = Math.floor(ms / 1000); const s = totalSec % 60; const m = Math.floor(totalSec / 60) % 60; const h = Math.floor(totalSec / 3600); return ${h.toString().padStart(2, "0")} : ${m.toString().padStart(2, "0")} : ${s .toString() .padStart(2, "0")}; }
+
+// Presets for timer const timerPresets = [30, 60, 120, 300]; // seconds
+
+// --- Calendar & Reminders --- const [currentMonth, setCurrentMonth] = useState(new Date()); const [selectedDate, setSelectedDate] = useState( new Date().toISOString().slice(0, 10) ); // YYYY-MM-DD
+
+// Storage keys const STORE_KEY = "timeapp_reminders_v1"; const ALARM_KEY = "timeapp_alarms_v1";
+
+const [reminders, setReminders] = useState(() => { try { const raw = localStorage.getItem(STORE_KEY); return raw ? JSON.parse(raw) : []; } catch (e) { return []; } });
+
+useEffect(() => { try { localStorage.setItem(STORE_KEY, JSON.stringify(reminders)); } catch (e) {} }, [reminders]);
+
+// Alarms (separate simple alarms with time and label) const [alarms, setAlarms] = useState(() => { try { const raw = localStorage.getItem(ALARM_KEY); return raw ? JSON.parse(raw) : []; } catch (e) { return []; } }); useEffect(() => { try { localStorage.setItem(ALARM_KEY, JSON.stringify(alarms)); } catch (e) {} }, [alarms]);
+
+// --- Notification & Alarm trigger --- function playBeep() { try { const ctx = new (window.AudioContext || window.webkitAudioContext)(); const o = ctx.createOscillator(); const g = ctx.createGain(); o.type = "sine"; o.frequency.value = 880; o.connect(g); g.connect(ctx.destination); o.start(); g.gain.setValueAtTime(0.0001, ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 1.2); setTimeout(() => { o.stop(); ctx.close(); }, 1400); } catch (e) { // fallback: beep element const a = new Audio(); // a.src = 'data:audio/wav;base64,...' // omitted for brevity a.play().catch(() => {}); } }
+
+async function ensureNotificationPermission() { if (!("Notification" in window)) return false; if (Notification.permission === "granted") return true; if (Notification.permission !== "denied") { const p = await Notification.requestPermission(); return p === "granted"; } return false; }
+
+async function triggerAlarm(message = "Alarm") { playBeep(); const allowed = await ensureNotificationPermission(); if (allowed) { try { new Notification("TimeApp", { body: message }); } catch (e) {} } }
+
+// Background checker: check reminders & alarms every 1s useEffect(() => { const id = setInterval(() => { const now = new Date(); // check alarms alarms.forEach((a) => { if (!a.triggered) { const due = new Date(a.datetime); if (now >= due) { triggerAlarm(a.label || "Alarm"); setAlarms((prev) => prev.map((x) => (x.id === a.id ? { ...x, triggered: true } : x)) ); } } }); // check reminders (scheduled on a date/time) reminders.forEach((r) => { if (!r.triggered && r.datetime) { const due = new Date(r.datetime); if (now >= due) { triggerAlarm(Reminder: ${r.title || "(no title)"}); setReminders((prev) => prev.map((x) => (x.id === r.id ? { ...x, triggered: true } : x)) ); } } }); }, 1000); return () => clearInterval(id); }, [alarms, reminders]);
+
+// --- Helper: unique id --- function uid(prefix = "id") { return ${prefix}_${Math.random().toString(36).slice(2, 9)}; }
+
+// --- Reminder form --- const [remTitle, setRemTitle] = useState(""); const [remDatetime, setRemDatetime] = useState(() => { // default to selectedDate + current time const t = new Date(); const hh = t.getHours().toString().padStart(2, "0"); const mm = t.getMinutes().toString().padStart(2, "0"); return ${new Date().toISOString().slice(0, 10)}T${hh}:${mm}; });
+
+function addReminder() { const entry = { id: uid("rem"), title: remTitle || "(Tanpa judul)", datetime: remDatetime, date: remDatetime.slice(0, 10), created: new Date().toISOString(), triggered: false, }; setReminders((s) => [entry, ...s]); setRemTitle(""); }
+
+function deleteReminder(id) { setReminders((s) => s.filter((r) => r.id !== id)); }
+
+function addAlarmAt(datetime, label) { setAlarms((s) => [ { id: uid("alarm"), datetime, label: label || "Alarm", triggered: false }, ...s, ]); }
+
+function deleteAlarm(id) { setAlarms((s) => s.filter((a) => a.id !== id)); }
+
+// --- Calendar rendering helpers --- function startOfMonth(d) { return new Date(d.getFullYear(), d.getMonth(), 1); } function daysInMonth(d) { return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(); }
+
+function buildMonthMatrix(d) { const start = startOfMonth(d); const startWeekday = start.getDay(); // 0..6 Sun..Sat const total = daysInMonth(d); const rows = []; let cur = 1 - startWeekday; for (let r = 0; r < 6; r++) { const row = []; for (let c = 0; c < 7; c++, cur++) { if (cur < 1 || cur > total) row.push(null); else row.push(new Date(d.getFullYear(), d.getMonth(), cur)); } rows.push(row); } return rows; }
+
+const monthMatrix = buildMonthMatrix(currentMonth);
+
+// --- Simple UI pieces --- function IconClock() { return ( <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"> <path d="M12 7v5l3 2" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /> <circle cx="12" cy="12" r="9" strokeWidth="1.5" /> </svg> ); }
+
+// --- Main layout --- return ( <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-950 to-black flex items-center justify-center p-4"> <div className={relative w-full ${CARD_MAX_WIDTH} bg-white/5 backdrop-blur-md rounded-2xl shadow-2xl p-4}> {/* Header */} <div className="flex items-center justify-between mb-3"> <div> <div className="text-xs text-gray-300">TimeApp</div> <div className="text-sm text-gray-400">Modern · Clean · Futuristic</div> </div> <div className="text-right"> <div className="text-2xl font-semibold text-white">{now.toLocaleTimeString()}</div> <div className="text-xs text-gray-300">{now.toLocaleDateString()}</div> </div> </div>
+
+{/* Content area */}
+    <div className="h-[60vh] sm:h-[58vh] overflow-auto pb-28">
+      {activeTab === "Clock" && (
+        <section>
+          <div className="flex flex-col items-center justify-center py-6">
+            <div className="rounded-xl p-6 w-full bg-white/6 border border-white/6">
+              <div className="text-center">
+                <div className="text-5xl font-mono text-white">{now.toLocaleTimeString()}</div>
+                <div className="mt-2 text-gray-300">{now.toLocaleDateString()}</div>
+              </div>
+            </div>
+
+            <div className="mt-4 w-full grid grid-cols-2 gap-3">
+              <div className="rounded-lg p-3 bg-white/4 text-center">
+                <div className="text-xs text-gray-300">Timezone</div>
+                <div className="text-sm text-white">{Intl.DateTimeFormat().resolvedOptions().timeZone}</div>
+              </div>
+              <div className="rounded-lg p-3 bg-white/4 text-center">
+                <div className="text-xs text-gray-300">Weekday</div>
+                <div className="text-sm text-white">{now.toLocaleString(undefined, { weekday: 'long' })}</div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {activeTab === "Stopwatch" && (
+        <section>
+          <div className="p-4 rounded-xl bg-white/6 border border-white/6">
+            <div className="text-4xl font-mono text-white text-center">{msToClock(swTime)}</div>
+            <div className="flex gap-2 justify-center mt-4">
+              {!swRunning ? (
+                <button onClick={swStart} className="px-4 py-2 rounded-full bg-green-500 text-black font-semibold">Start</button>
+              ) : (
+                <button onClick={swPause} className="px-4 py-2 rounded-full bg-yellow-400 text-black font-semibold">Pause</button>
+              )}
+              <button onClick={swLap} disabled={!swRunning} className="px-4 py-2 rounded-full bg-white/8">Lap</button>
+              <button onClick={swReset} className="px-4 py-2 rounded-full bg-red-500 text-white">Reset</button>
+            </div>
+            <div className="mt-4 max-h-44 overflow-auto">
+              {laps.length === 0 ? (
+                <div className="text-gray-400 text-sm">No laps yet</div>
+              ) : (
+                <ul className="space-y-2">
+                  {laps.map((l, i) => (
+                    <li key={i} className="text-sm text-white/90 flex justify-between">
+                      <span>Lap {laps.length - i}</span>
+                      <span className="font-mono">{msToClock(l)}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {activeTab === "Timer" && (
+        <section>
+          <div className="p-4 rounded-xl bg-white/6 border border-white/6">
+            <div className="text-3xl font-mono text-white text-center">{msToClock(timerMs)}</div>
+            <div className="flex gap-2 justify-center mt-4 flex-wrap">
+              {timerPresets.map((s) => (
+                <button key={s} onClick={() => setTimerMs(s * 1000)} className="px-3 py-2 rounded-lg bg-white/8">{s}s</button>
+              ))}
+            </div>
+            <div className="flex gap-2 justify-center mt-4">
+              {!timerRunning ? (
+                <button onClick={() => timerMs > 0 && setTimerRunning(true)} className="px-4 py-2 rounded-full bg-green-500">Start</button>
+              ) : (
+                <button onClick={() => setTimerRunning(false)} className="px-4 py-2 rounded-full bg-yellow-400">Pause</button>
+              )}
+              <button onClick={() => { setTimerRunning(false); setTimerMs(0); }} className="px-4 py-2 rounded-full bg-red-500 text-white">Reset</button>
+            </div>
+            <div className="mt-4 text-sm text-gray-300">
+              Tip: gunakan preset atau masukkan detik langsung pada waktu.
+            </div>
+          </div>
+        </section>
+      )}
+
+      {activeTab === "Calendar" && (
+        <section>
+          <div className="p-3 rounded-xl bg-white/6 border border-white/6">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex gap-2 items-center">
+                <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))} className="px-2 py-1 rounded-md bg-white/8">◀</button>
+                <div className="text-white font-semibold">{currentMonth.toLocaleString(undefined, { month: 'long', year: 'numeric' })}</div>
+                <button onClick={() => setCurrentMonth(new Date())} className="px-2 py-1 rounded-md bg-white/8">Today</button>
+                <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))} className="px-2 py-1 rounded-md bg-white/8">▶</button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-7 gap-1 text-xs text-gray-300 mb-2">
+              {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => (
+                <div key={d} className="text-center">{d}</div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-7 gap-1">
+              {monthMatrix.map((row, rIdx) => (
+                <React.Fragment key={rIdx}>
+                  {row.map((cell, cIdx) => {
+                    const key = `${rIdx}-${cIdx}`;
+                    if (!cell) return <div key={key} className="h-12 rounded-md bg-transparent"></div>;
+                    const iso = cell.toISOString().slice(0, 10);
+                    const hasRem = reminders.some(x => x.date === iso);
+                    return (
+                      <button key={key} onClick={() => { setSelectedDate(iso); setRemDatetime(iso + 'T' + remDatetime.slice(11)); }}
+                        className={`h-12 p-1 rounded-md flex flex-col items-center justify-center ${selectedDate === iso ? 'bg-white/10 border border-white/8' : 'hover:bg-white/3'}`}>
+                        <div className="text-sm text-white">{cell.getDate()}</div>
+                        <div className="text-[10px] text-gray-300">{hasRem ? '•' : ''}</div>
+                      </button>
+                    );
+                  })}
+                </React.Fragment>
+              ))}
+            </div>
+
+            <div className="mt-4">
+              <div className="text-sm text-gray-300 mb-2">Tambah Pengingat untuk <span className="text-white">{selectedDate}</span></div>
+              <div className="flex gap-2">
+                <input value={remTitle} onChange={e => setRemTitle(e.target.value)} className="flex-1 rounded-lg p-2 bg-white/5 text-white" placeholder="Judul pengingat" />
+                <input type="datetime-local" value={remDatetime} onChange={e => setRemDatetime(e.target.value)} className="rounded-lg p-2 bg-white/5 text-white" />
+                <button onClick={addReminder} className="px-3 py-2 rounded-lg bg-blue-500">Tambah</button>
+              </div>
+
+              <div className="mt-4">
+                <div className="text-sm text-gray-300 mb-2">Pengingatmu</div>
+                <div className="max-h-44 overflow-auto space-y-2">
+                  {reminders.length === 0 ? (
+                    <div className="text-gray-400">Belum ada pengingat</div>
+                  ) : (
+                    reminders.map(r => (
+                      <div key={r.id} className="p-2 rounded-md bg-white/6 flex justify-between items-center">
+                        <div>
+                          <div className="text-sm text-white">{r.title}</div>
+                          <div className="text-xs text-gray-300">{new Date(r.datetime).toLocaleString()}</div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button onClick={() => addAlarmAt(r.datetime, r.title)} className="px-2 py-1 rounded-md bg-white/8 text-xs">Set Alarm</button>
+                          <button onClick={() => deleteReminder(r.id)} className="px-2 py-1 rounded-md bg-red-600 text-xs">Hapus</button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <div className="text-sm text-gray-300 mb-2">Alarm</div>
+                <div className="space-y-2 max-h-40 overflow-auto">
+                  {alarms.length === 0 ? <div className="text-gray-400">Belum ada alarm</div> : alarms.map(a => (
+                    <div key={a.id} className="p-2 rounded-md bg-white/6 flex justify-between items-center">
+                      <div>
+                        <div className="text-sm text-white">{a.label}</div>
+                        <div className="text-xs text-gray-300">{new Date(a.datetime).toLocaleString()}</div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={() => { if (!a.triggered) { setAlarms(prev => prev.map(x => x.id === a.id ? { ...x, datetime: new Date(Date.now() + 5000).toISOString() } : x)); } }} className="px-2 py-1 rounded-md bg-white/8 text-xs">Test(+5s)</button>
+                        <button onClick={() => deleteAlarm(a.id)} className="px-2 py-1 rounded-md bg-red-600 text-xs">Hapus</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-3 text-xs text-gray-400">Note: alarms & reminders disimpan di browser. Notifications akan meminta izin saat pertama kali dipakai.</div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+      )}
+
+    </div>
+
+    {/* Floating bottom nav */}
+    <div className="fixed left-1/2 transform -translate-x-1/2 bottom-4 z-50">
+      <div className={`flex items-center gap-1 ${CARD_MAX_WIDTH}`}>
+        <div className="w-full bg-gradient-to-r from-white/5 to-white/3 rounded-3xl p-1 shadow-lg backdrop-blur-md border border-white/6 flex justify-between items-center px-3" style={{width: 'min(680px, 92vw)'}}>
+          {tabs.map(t => (
+            <button key={t} onClick={() => setActiveTab(t)} className={`flex-1 py-3 px-2 rounded-2xl flex flex-col items-center justify-center ${activeTab === t ? 'bg-white/10' : 'bg-transparent'}`}>
+              <div className="text-xs text-gray-200">{t}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+); }

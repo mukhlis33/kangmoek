@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PDF Compressor Pro — KangMoek</title>
+
+  <!-- pdf.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.min.js"></script>
+  <!-- pdf-lib -->
+  <script src="https://cdn.jsdelivr.net/npm/pdf-lib/dist/pdf-lib.min.js"></script>
+  <!-- JSZip + FileSaver -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <!-- Tailwind (CDN) & Font Awesome -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+
+  <style>
+    body { font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background: linear-gradient(135deg,#f0fdf4 0%,#f8fafc 100%); min-height:100vh; padding:24px; }
+    .card { background:white; border-radius:12px; box-shadow:0 8px 30px rgba(2,6,23,0.08); padding:20px; }
+    .file-area { border:2px dashed #cbd5e1; border-radius:12px; padding:28px; text-align:center; cursor:pointer; background:#fff; }
+    .file-area.dragover { border-color:#10b981; background:#f0fff4; }
+    .progress-bar { height:10px; background:#e6eef0; border-radius:20px; overflow:hidden; }
+    .progress-fill { height:100%; width:0%; background:linear-gradient(90deg,#a7f3d0,#10b981); transition:width .2s linear; }
+    .small { font-size:0.85rem; color:#6b7280; }
+    .btn { background:linear-gradient(135deg,#10b981 0%,#059669 100%); color:white; padding:10px 16px; border-radius:10px; display:inline-flex; align-items:center; gap:8px; }
+    .input-hidden { display:none; }
+    .canvas-preview { max-width:100%; border-radius:8px; box-shadow:0 6px 18px rgba(2,6,23,0.06); }
+  </style>
+</head>
+<body>
+
+  <div class="max-w-5xl mx-auto space-y-6">
+    <div class="card">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-2xl font-semibold">PDF Compressor Pro — KangMoek</h1>
+          <p class="small mt-1">Kompresi nyata di browser (pdf.js + pdf-lib). Rename otomatis <code>_kangmoek_kompresi</code>.</p>
+        </div>
+        <div class="text-sm small text-gray-600">Tip: file besar/halaman banyak akan memakan waktu</div>
+      </div>
+    </div>
+
+    <div class="card space-y-4">
+      <!-- Upload area -->
+      <div id="fileUploadArea" class="file-area">
+        <div class="text-3xl text-green-500 mb-2"><i class="fas fa-cloud-upload-alt"></i></div>
+        <p class="font-medium">Seret file PDF di sini</p>
+        <p class="small mt-1">atau</p>
+        <div class="mt-3">
+          <button id="uploadBtn" class="btn" type="button"><i class="fas fa-folder-open"></i> Pilih File</button>
+          <input id="pdfFiles" class="input-hidden" type="file" accept="application/pdf" multiple />
+        </div>
+        <p class="small mt-2">Maks 10 file / file hingga 50MB (browser-limited)</p>
+      </div>
+
+      <!-- Options -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div>
+          <label class="small font-medium">Kualitas</label>
+          <select id="quality" class="w-full border rounded px-3 py-2 mt-1">
+            <option value="high">High (90%)</option>
+            <option value="medium" selected>Medium (60%)</option>
+            <option value="low">Low (40%)</option>
+            <option value="verylow">Very Low (25%)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="small font-medium">DPI (render)</label>
+          <select id="dpi" class="w-full border rounded px-3 py-2 mt-1">
+            <option value="600">600</option>
+            <option value="300" selected>300</option>
+            <option value="150">150</option>
+            <option value="96">96</option>
+            <option value="custom">Custom</option>
+          </select>
+          <input id="customDpi" class="w-full border rounded px-3 py-2 mt-2 hidden" type="number" min="72" max="2400" placeholder="Masukkan DPI kustom (72-2400)"/>
+        </div>
+
+        <div>
+          <label class="small font-medium">Opsi preview</label>
+          <div class="mt-1 small text-gray-700">
+            Preview 1 halaman pertama untuk multi-file; semua halaman jika hanya 1 file.
+          </div>
+        </div>
+      </div>
+
+      <!-- File list & actions -->
+      <div id="fileList" class="space-y-3"></div>
+
+      <div class="flex items-center justify-between">
+        <div id="globalStatus" class="small text-gray-600">Belum ada file</div>
+        <div class="flex items-center gap-3">
+          <button id="compressBtn" class="btn" type="button"><i class="fas fa-compress-arrows-alt"></i> Kompres Sekarang</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Preview / results -->
+    <div id="previewContainer" class="space-y-4"></div>
+  </div>
+
+<script>
+/* ===========================
+   Setup pdf.js worker
+   =========================== */
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.worker.min.js';
+
+/* ===========================
+   Elements
+   =========================== */
+const uploadBtn = document.getElementById('uploadBtn');
+const pdfFilesInput = document.getElementById('pdfFiles');
+const fileUploadArea = document.getElementById('fileUploadArea');
+const fileList = document.getElementById('fileList');
+const previewContainer = document.getElementById('previewContainer');
+const compressBtn = document.getElementById('compressBtn');
+const globalStatus = document.getElementById('globalStatus');
+const qualitySelect = document.getElementById('quality');
+const dpiSelect = document.getElementById('dpi');
+const customDpiInput = document.getElementById('customDpi');
+
+let currentFiles = []; // FileList-like array
+
+/* ===========================
+   Prevent double dialog & allow browse
+   =========================== */
+uploadBtn.addEventListener('click', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  // Reset value to allow re-select same file(s)
+  pdfFilesInput.value = '';
+  pdfFilesInput.click();
+});
+
+// Prevent upload area click from opening native dialog indirectly
+fileUploadArea.addEventListener('click', (e) => {
+  // Only button should trigger; clicking elsewhere does nothing (but drag/drop works)
+  if (!e.target.closest('#uploadBtn')) e.preventDefault();
+});
+
+/* Drag & Drop */
+fileUploadArea.addEventListener('dragover', (e) => { e.preventDefault(); fileUploadArea.classList.add('dragover'); });
+fileUploadArea.addEventListener('dragleave', () => fileUploadArea.classList.remove('dragover'));
+fileUploadArea.addEventListener('drop', async (e) => {
+  e.preventDefault();
+  fileUploadArea.classList.remove('dragover');
+  if (e.dataTransfer.files && e.dataTransfer.files.length) {
+    const arr = Array.from(e.dataTransfer.files).filter(f => f.type === 'application/pdf');
+    currentFiles = arr;
+    renderFileList();
+    await preparePreviews();
+  }
+});
+
+/* Handle file selection via browse */
+pdfFilesInput.addEventListener('change', async (e) => {
+  const files = Array.from(e.target.files).filter(f => f.type === 'application/pdf');
+  currentFiles = files;
+  renderFileList();
+  await preparePreviews();
+});
+
+/* DPI select */
+dpiSelect.addEventListener('change', () => {
+  customDpiInput.classList.toggle('hidden', dpiSelect.value !== 'custom');
+  if (dpiSelect.value === 'custom') customDpiInput.focus();
+});
+
+/* Render file list UI */
+function renderFileList() {
+  fileList.innerHTML = '';
+  if (!currentFiles || currentFiles.length === 0) {
+    globalStatus.textContent = 'Belum ada file';
+    return;
+  }
+  globalStatus.textContent = `${currentFiles.length} file dipilih`;
+  currentFiles.forEach((file, idx) => {
+    const row = document.createElement('div');
+    row.className = 'flex items-center justify-between bg-gray-50 p-3 rounded';
+    row.innerHTML = `
+      <div class="flex items-center gap-3">
+        <i class="fas fa-file-pdf text-red-500"></i>
+        <div>
+          <div class="font-medium">${file.name}</div>
+          <div class="small text-gray-600">${formatBytes(file.size)}</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button data-idx="${idx}" class="text-sm px-2 py-1 rounded border remove-btn">Hapus</button>
+      </div>
+    `;
+    fileList.appendChild(row);
+  });
+
+  // attach remove handlers
+  fileList.querySelectorAll('.remove-btn').forEach(b => {
+    b.addEventListener('click', (e) => {
+      const idx = Number(e.currentTarget.getAttribute('data-idx'));
+      currentFiles.splice(idx,1);
+      renderFileList();
+      previewContainer.innerHTML = '';
+    });
+  });
+}
+
+/* Utility: format bytes */
+function formatBytes(bytes) {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B','KB','MB','GB'];
+  const i = Math.floor(Math.log(bytes)/Math.log(k));
+  return parseFloat((bytes / Math.pow(k,i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+/* ===========================
+   Preview generation
+   - If only 1 file -> show all pages
+   - If >1 files -> show only first page preview per file
+   =========================== */
+async function preparePreviews() {
+  previewContainer.innerHTML = '';
+  if (!currentFiles || currentFiles.length === 0) return;
+
+  const multi = currentFiles.length > 1;
+  for (let i=0;i<currentFiles.length;i++) {
+    const file = currentFiles[i];
+    const card = document.createElement('div');
+    card.className = 'card p-4';
+    card.innerHTML = `
+      <div class="flex items-start gap-4">
+        <div style="width:140px">
+          <div class="preview-canvas-wrap bg-gray-100 p-2 rounded flex items-center justify-center" id="preview-wrap-${i}">
+            <div class="small text-gray-500">Memuat...</div>
+          </div>
+        </div>
+        <div class="flex-1">
+          <div class="flex justify-between items-start">
+            <div>
+              <div class="font-medium">${file.name}</div>
+              <div class="small text-gray-600 mt-1">Sebelum: ${formatBytes(file.size)}</div>
+            </div>
+            <div class="text-right small text-gray-600">File ${i+1} dari ${currentFiles.length}</div>
+          </div>
+
+          <div class="mt-3">
+            <div class="small text-gray-600">Progres kompres: <span id="p-${i}-percent">0%</span></div>
+            <div class="progress-bar mt-2"><div id="p-${i}-bar" class="progress-fill"></div></div>
+            <div class="mt-2 small text-gray-600">Hasil: <span id="p-${i}-after">-</span></div>
+          </div>
+        </div>
+      </div>
+    `;
+    previewContainer.appendChild(card);
+
+    // generate preview canvas(s)
+    try {
+      const onlyFirst = multi; // if multi, only first
+      await renderPreview(file, i, onlyFirst);
+    } catch (err) {
+      const wrap = document.getElementById(`preview-wrap-${i}`);
+      wrap.innerHTML = `<div class="small text-red-500">Gagal pratinjau</div>`;
+      console.error('Preview error', err);
+    }
+  }
+}
+
+/* Render preview using pdf.js -> canvas
+   returns array of canvases (or single canvas)
+*/
+async function renderPreview(file, idx, onlyFirst=false) {
+  const arrayBuffer = await file.arrayBuffer();
+  const loadingTask = pdfjsLib.getDocument({data: arrayBuffer});
+  const pdf = await loadingTask.promise;
+  const pageCount = pdf.numPages;
+  const pagesToRender = onlyFirst ? [1] : Array.from({length:pageCount},(_,i)=>i+1);
+
+  const previewWrap = document.getElementById(`preview-wrap-${idx}`);
+  previewWrap.innerHTML = ''; // clear "memuat"
+  for (let p of pagesToRender) {
+    const page = await pdf.getPage(p);
+    const viewport = page.getViewport({scale: 1});
+    // Determine scale based on DPI setting: scale = dpi / 150 (150 is baseline)
+    const dpi = (dpiSelect.value === 'custom') ? Number(customDpiInput.value) || 150 : Number(dpiSelect.value);
+    const scale = Math.max(0.5, Math.min(2.5, dpi / 150));
+    const vp = page.getViewport({scale});
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.floor(vp.width);
+    canvas.height = Math.floor(vp.height);
+    canvas.className = 'canvas-preview';
+    const ctx = canvas.getContext('2d');
+
+    await page.render({canvasContext: ctx, viewport: vp}).promise;
+
+    // show only first rendered canvas in preview area (if multiple pages, append stacked)
+    previewWrap.appendChild(canvas);
+    if (onlyFirst) break;
+  }
+}
+
+/* ===========================
+   Compression logic
+   - For each file:
+     1) Render every page (or only pages as needed) at chosen DPI to canvas
+     2) Convert each canvas to JPEG/PNG Blob with quality (based on qualitySelect)
+     3) Create a new PDF with pdf-lib and embed each image as a page (scaled to original page size)
+     4) Return compressed PDF Uint8Array / Blob
+   This method reduces size by rasterizing pages (best for scanned/image PDFs).
+   For text-only PDFs this may increase size or lose selectable text.
+   =========================== */
+
+function qualityToJpegQuality(q) {
+  // map select to jpeg quality number between 0-1
+  switch(q) {
+    case 'high': return 0.9;
+    case 'medium': return 0.6;
+    case 'low': return 0.4;
+    case 'verylow': return 0.25;
+    default: return 0.6;
+  }
+}
+
+async function canvasToJpegArrayBuffer(canvas, quality) {
+  // return ArrayBuffer of JPEG
+  return new Promise((resolve) => {
+    canvas.toBlob(blob => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.readAsArrayBuffer(blob);
+    }, 'image/jpeg', quality);
+  });
+}
+
+async function compressPdfFile(file, onProgress) {
+  // onProgress(percent: 0-100)
+  const arrayBuffer = await file.arrayBuffer();
+  const loadingTask = pdfjsLib.getDocument({data: arrayBuffer});
+  const pdf = await loadingTask.promise;
+  const pageCount = pdf.numPages;
+
+  // Determine DPI/scale and quality
+  const dpi = (dpiSelect.value === 'custom') ? Number(customDpiInput.value) || 150 : Number(dpiSelect.value);
+  const scale = Math.max(0.5, Math.min(2.5, dpi / 150));
+  const jpegQuality = qualityToJpegQuality(qualitySelect.value);
+
+  // Create new pdf-lib document
+  const pdfDoc = await PDFLib.PDFDocument.create();
+
+  // Process pages sequentially to avoid memory spikes
+  for (let p = 1; p <= pageCount; p++) {
+    const page = await pdf.getPage(p);
+    const viewport = page.getViewport({scale});
+    // create canvas for this page
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = Math.floor(viewport.width);
+    canvas.height = Math.floor(viewport.height);
+
+    await page.render({canvasContext: ctx, viewport}).promise;
+
+    // convert canvas to JPEG array buffer
+    const imgArrayBuffer = await canvasToJpegArrayBuffer(canvas, jpegQuality);
+
+    // embed image into pdf-lib
+    const jpgImage = await pdfDoc.embedJpg(imgArrayBuffer);
+    const jpgDims = jpgImage.scale(1);
+
+    // create a new page with same dimensions (in PDF points)
+    const pdfPage = pdfDoc.addPage([jpgDims.width, jpgDims.height]);
+    pdfPage.drawImage(jpgImage, {
+      x: 0,
+      y: 0,
+      width: jpgDims.width,
+      height: jpgDims.height,
+    });
+
+    // progress callback
+    const progressVal = Math.round((p / pageCount) * 100);
+    if (onProgress) onProgress(progressVal);
+    await new Promise(r => setTimeout(r, 50)); // small yield
+  }
+
+  // Serialize PDF
+  const pdfBytes = await pdfDoc.save();
+  return pdfBytes; // Uint8Array
+}
+
+/* ===========================
+   Compress button handler
+   =========================== */
+compressBtn.addEventListener('click', async () => {
+  if (!currentFiles || currentFiles.length === 0) {
+    alert('Silakan pilih minimal 1 file PDF terlebih dahulu.');
+    return;
+  }
+
+  compressBtn.disabled = true;
+  globalStatus.textContent = 'Memulai kompresi...';
+
+  const outputs = []; // {name, blob, originalSize, compressedSize}
+
+  try {
+    for (let i=0;i<currentFiles.length;i++) {
+      const file = currentFiles[i];
+      const percentEl = document.getElementById(`p-${i}-percent`);
+      const barEl = document.getElementById(`p-${i}-bar`);
+      const afterEl = document.getElementById(`p-${i}-after`);
+
+      // update UI
+      percentEl.textContent = '0%';
+      barEl.style.width = '0%';
+      afterEl.textContent = '-';
+
+      // compress
+      const pdfBytes = await compressPdfFile(file, (v) => {
+        percentEl.textContent = `${v}%`;
+        barEl.style.width = `${v}%`;
+      });
+
+      const compressedBlob = new Blob([pdfBytes], {type: 'application/pdf'});
+      outputs.push({
+        name: makeRenamed(file.name),
+        blob: compressedBlob,
+        originalSize: file.size,
+        compressedSize: compressedBlob.size
+      });
+
+      afterEl.textContent = `${formatBytes(compressedBlob.size)} (${Math.round((compressedBlob.size/file.size)*100)}%)`;
+      // small delay so UI updates
+      await new Promise(r => setTimeout(r, 200));
+    }
+
+    // If multiple files => zip, else single file download
+    if (outputs.length === 1) {
+      const out = outputs[0];
+      saveAs(out.blob, out.name);
+      globalStatus.textContent = `Selesai: ${out.name} (${formatBytes(out.compressedSize)})`;
+    } else {
+      // ZIP
+      globalStatus.textContent = 'Membuat ZIP...';
+      const zip = new JSZip();
+      outputs.forEach(o => zip.file(o.name, o.blob));
+      const content = await zip.generateAsync({type:'blob'}, (meta) => {
+        // optional overall zip progress could be shown in UI
+      });
+      saveAs(content, 'hasil_kangmoek_kompresi.zip');
+      globalStatus.textContent = `Selesai: hasil_kangmoek_kompresi.zip (${formatBytes(content.size)})`;
+    }
+
+    // Show summary card
+    renderSummary(outputs);
+
+  } catch (err) {
+    console.error(err);
+    alert('Terjadi kesalahan saat kompresi. Lihat console untuk detail.');
+    globalStatus.textContent = 'Terjadi kesalahan';
+  } finally {
+    compressBtn.disabled = false;
+  }
+});
+
+/* Rename helper */
+function makeRenamed(original) {
+  const base = original.replace(/\.pdf$/i, '');
+  return `${base}_kangmoek_kompresi.pdf`;
+}
+
+/* Render summary and downloadable links */
+function renderSummary(outputs) {
+  const wrap = document.createElement('div');
+  wrap.className = 'card p-4';
+  let html = '<div class="font-medium mb-2">Ringkasan Hasil</div>';
+  html += '<div class="space-y-2">';
+  outputs.forEach(o => {
+    html += `<div class="flex items-center justify-between bg-gray-50 p-2 rounded">
+      <div>
+        <div class="font-medium">${o.name}</div>
+        <div class="small text-gray-600">Sebelum: ${formatBytes(o.originalSize)} • Setelah: ${formatBytes(o.compressedSize)} (${Math.round((o.compressedSize/o.originalSize)*100)}%)</div>
+      </div>
+      <div>
+        <button class="btn download-single" data-name="${o.name}"><i class="fas fa-download"></i> Download</button>
+      </div>
+    </div>`;
+  });
+  html += '</div>';
+  wrap.innerHTML = html;
+
+  // attach download handlers
+  setTimeout(() => {
+    wrap.querySelectorAll('.download-single').forEach(b => {
+      b.addEventListener('click', (e) => {
+        const name = e.currentTarget.getAttribute('data-name');
+        const found = outputs.find(x => x.name === name);
+        if (found) saveAs(found.blob, found.name);
+      });
+    });
+  }, 10);
+
+  // remove previous summary if exists
+  const existing = document.getElementById('summaryCard');
+  if (existing) existing.remove();
+  wrap.id = 'summaryCard';
+  previewContainer.prepend(wrap);
+}
+
+/* ===========================
+   Initialize small demo state if needed
+   =========================== */
+(function initDemo() {
+  globalStatus.textContent = 'Siap — pilih atau seret file PDF';
+})();
+</script>
+</body>
+</html>

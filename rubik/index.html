@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Rubik's Cube Solver 3D</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        canvas { display: block; }
+        #controls { 
+            position: absolute; 
+            top: 10px; 
+            left: 10px; 
+            background: rgba(255,255,255,0.8); 
+            padding: 10px; 
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <button onclick="scramble()">Acak</button>
+        <button onclick="solve()">Selesaikan</button>
+        <button onclick="reset()">Reset</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Inisialisasi scene, camera, renderer
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // Posisi kamera
+        camera.position.z = 15;
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(10, 10, 10);
+        scene.add(directionalLight);
+
+        // State kubus Rubik (3x3x3)
+        let cubeState = initializeCubeState();
+
+        // Membuat kubus Rubik
+        createRubiksCube();
+
+        // Fungsi inisialisasi state kubus
+        function initializeCubeState() {
+            // Struktur: [sisi][row][col]
+            const state = {};
+            const colors = {
+                'U': 'white', 'D': 'yellow', 
+                'F': 'green', 'B': 'blue', 
+                'L': 'orange', 'R': 'red'
+            };
+
+            for (const [face, color] of Object.entries(colors)) {
+                state[face] = Array(3).fill().map(() => Array(3).fill(color));
+            }
+            return state;
+        }
+
+        // Fungsi membuat visual kubus Rubik
+        function createRubiksCube() {
+            // Hapus kubus lama jika ada
+            scene.children.filter(child => child.userData.isCubelet).forEach(child => scene.remove(child));
+
+            // Warna untuk setiap sisi
+            const faceColors = {
+                'white': 0xffffff, 'yellow': 0xffff00,
+                'green': 0x00ff00, 'blue': 0x0000ff,
+                'orange': 0xff7700, 'red': 0xff0000,
+                'gray': 0x888888
+            };
+
+            // Buat setiap kubus kecil (cubelet)
+            for (let x = -1; x <= 1; x++) {
+                for (let y = -1; y <= 1; y++) {
+                    for (let z = -1; z <= 1; z++) {
+                        // Skip center yang tidak terlihat
+                        if (x === 0 && y === 0 && z === 0) continue;
+
+                        const cubelet = new THREE.Group();
+                        
+                        // Buat geometry untuk setiap sisi yang terlihat
+                        const materials = [];
+                        
+                        // Tentukan warna untuk setiap face cubelet ini
+                        // Back face (z = -1) - Biru
+                        if (z === -1) materials.push(new THREE.MeshBasicMaterial({ 
+                            color: faceColors.blue 
+                        }));
+                        else materials.push(new THREE.MeshBasicMaterial({ 
+                            color: faceColors.gray 
+                        }));
+
+                        // Front face (z = 1) - Hijau
+                        if (z === 1) materials.push(new THREE.MeshBasicMaterial({ 
+                            color: faceColors.green 
+                        }));
+                        else materials.push(new THREE.MeshBasicMaterial({ 
+                            color: faceColors.gray 
+                        }));
+
+                        // Top face (y = 1) - Putih
+                        if (y === 1) materials.push(new THREE.MeshBasicMaterial({ 
+                            color: faceColors.white 
+                        }));
+                        else materials.push(new THREE.MeshBasicMaterial({ 
+                            color: faceColors.gray 
+                        }));
+
+                        // Bottom face (y = -1) - Kuning
+                        if (y === -1) materials.push(new THREE.MeshBasicMaterial({ 
+                            color: faceColors.yellow 
+                        }));
+                        else materials.push(new THREE.MeshBasicMaterial({ 
+                            color: faceColors.gray 
+                        }));
+
+                        // Right face (x = 1) - Merah
+                        if (x === 1) materials.push(new THREE.MeshBasicMaterial({ 
+                            color: faceColors.red 
+                        }));
+                        else materials.push(new THREE.MeshBasicMaterial({ 
+                            color: faceColors.gray 
+                        }));
+
+                        // Left face (x = -1) - Oranye
+                        if (x === -1) materials.push(new THREE.MeshBasicMaterial({ 
+                            color: faceColors.orange 
+                        }));
+                        else materials.push(new THREE.MeshBasicMaterial({ 
+                            color: faceColors.gray 
+                        }));
+
+                        const geometry = new THREE.BoxGeometry(0.95, 0.95, 0.95);
+                        const mesh = new THREE.Mesh(geometry, materials);
+                        cubelet.add(mesh);
+
+                        cubelet.position.set(x * 1, y * 1, z * 1);
+                        cubelet.userData = { isCubelet: true, position: { x, y, z } };
+                        scene.add(cubelet);
+                    }
+                }
+            }
+        }
+
+        // Fungsi untuk mengacak kubus
+        function scramble() {
+            const moves = ["U", "U'", "D", "D'", "L", "L'", "R", "R'", "F", "F'", "B", "B'"];
+            for (let i = 0; i < 20; i++) {
+                const randomMove = moves[Math.floor(Math.random() * moves.length)];
+                performMove(randomMove);
+            }
+        }
+
+        // Fungsi melakukan gerakan
+        function performMove(move) {
+            // Implementasi logika rotasi sisi
+            console.log("Melakukan move:", move);
+            // Di sini akan ada logika untuk memutar sisi tertentu
+            animateMove(move);
+        }
+
+        // Animasi gerakan
+        function animateMove(move) {
+            // Implementasi animasi rotasi
+            createRubiksCube(); // Temporary: recreate cube
+        }
+
+        // Fungsi penyelesaian (sederhana)
+        function solve() {
+            alert("Fitur penyelesaian lengkap membutuhkan implementasi algoritma yang lebih kompleks");
+            // Implementasi solver algorithm akan sangat kompleks
+        }
+
+        function reset() {
+            cubeState = initializeCubeState();
+            createRubiksCube();
+        }
+
+        // Mouse controls untuk rotasi view
+        let isMouseDown = false;
+        let previousMousePosition = { x: 0, y: 0 };
+
+        renderer.domElement.addEventListener('mousedown', (e) => {
+            isMouseDown = true;
+            previousMousePosition = { x: e.clientX, y: e.clientY };
+        });
+
+        renderer.domElement.addEventListener('mouseup', () => {
+            isMouseDown = false;
+        });
+
+        renderer.domElement.addEventListener('mousemove', (e) => {
+            if (!isMouseDown) return;
+
+            const deltaX = e.clientX - previousMousePosition.x;
+            const deltaY = e.clientY - previousMousePosition.y;
+
+            scene.rotation.y += deltaX * 0.01;
+            scene.rotation.x += deltaY * 0.01;
+
+            previousMousePosition = { x: e.clientX, y: e.clientY };
+        });
+
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>

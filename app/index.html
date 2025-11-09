@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kang Moek App</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="script.js" defer></script>
+</head>
+<body>
+
+  <!-- Splash screen -->
+  <div id="splash">
+    <img src="logo.png" alt="Logo" class="logo">
+    <p class="loading">Memuat KangMoek...</p>
+  </div>
+
+  <!-- Offline notice -->
+  <div id="offline">
+    <h2>Tidak ada koneksi internet 😔</h2>
+    <p>Pastikan Anda terhubung ke jaringan untuk membuka situs KangMoek.</p>
+    <button onclick="reloadPage()">Coba Lagi</button>
+  </div>
+
+  <!-- Main webview -->
+  <iframe id="webview" src="" frameborder="0"></iframe>
+
+</body>
+</html>

@@ -1,0 +1,2672 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIP DA - Presensi Digital</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-storage-compat.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #1a936f;
+            --primary-dark: #114b47;
+            --secondary: #88d498;
+            --accent: #c6dabf;
+            --surface: #ffffff;
+            --background: #f8f9fa;
+            --on-primary: #ffffff;
+            --on-surface: #2b2b2b;
+            --on-background: #5a5a5a;
+            --border: #e0e0e0;
+            --shadow: 0 2px 8px rgba(0,0,0,0.1);
+            --radius: 12px;
+            --danger: #e74c3c;
+            --warning: #f39c12;
+            --success: #27ae60;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background);
+            color: var(--on-surface);
+            line-height: 1.6;
+            padding-bottom: 80px;
+        }
+
+        .container {
+            max-width: 100%;
+            padding: 0 16px;
+        }
+
+        /* HEADER */
+        .header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: var(--on-primary);
+            padding: 20px 0;
+            position: relative;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-info h1 {
+            font-size: 1.3rem;
+            margin-bottom: 5px;
+        }
+
+        .header-info p {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .logout-btn {
+            background: rgba(255,255,255,0.2);
+            color: var(--on-primary);
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.1);
+        }
+
+        /* MAIN CONTENT */
+        .main-content {
+            padding: 20px 0;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* CARDS */
+        .card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow);
+        }
+
+        /* TIME INFO */
+        .time-info {
+            text-align: center;
+        }
+
+        .current-time {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 8px;
+        }
+
+        .schedule-info {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 12px;
+        }
+
+        .schedule-item {
+            text-align: center;
+        }
+
+        .schedule-item .label {
+            font-size: 0.8rem;
+            color: var(--on-background);
+            margin-bottom: 4px;
+        }
+
+        .schedule-item .time {
+            font-weight: bold;
+            color: var(--on-surface);
+        }
+
+        .countdown {
+            font-size: 0.9rem;
+            margin-top: 8px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+
+        .countdown.early {
+            background: var(--accent);
+            color: var(--primary-dark);
+        }
+
+        .countdown.late {
+            background: var(--danger);
+            color: white;
+        }
+
+        .countdown.going-home {
+            background: var(--warning);
+            color: white;
+        }
+
+        /* PRESENSI OPTIONS */
+        .presensi-options {
+            display: grid;
+            gap: 12px;
+            margin: 20px 0;
+        }
+
+        .presensi-option {
+            background: var(--surface);
+            border: 2px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            text-align: left;
+        }
+
+        .presensi-option.active {
+            border-color: var(--primary);
+            background: var(--accent);
+        }
+
+        .option-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .option-header h3 {
+            color: var(--primary-dark);
+        }
+
+        .option-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: bold;
+        }
+
+        .badge-wfo {
+            background: var(--primary);
+            color: white;
+        }
+
+        .badge-wfh {
+            background: var(--warning);
+            color: white;
+        }
+
+        .option-description {
+            color: var(--on-background);
+            font-size: 0.9rem;
+            margin-bottom: 12px;
+        }
+
+        /* BUTTONS */
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: var(--on-primary);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-primary:disabled {
+            background: var(--on-background);
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: var(--background);
+            color: var(--on-surface);
+            border: 1px solid var(--border);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 0.8rem;
+        }
+
+        .btn-full {
+            width: 100%;
+        }
+
+        /* BOTTOM NAV */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            display: flex;
+            padding: 8px 0;
+            z-index: 1000;
+        }
+
+        .nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 8px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--on-background);
+        }
+
+        .nav-item.active {
+            color: var(--primary);
+        }
+
+        .nav-icon {
+            font-size: 1.2rem;
+            margin-bottom: 4px;
+        }
+
+        .nav-label {
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+
+        /* MODAL */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 24px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--on-background);
+        }
+
+        /* FORM ELEMENTS */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        /* CAMERA PREVIEW */
+        .camera-preview {
+            width: 100%;
+            max-width: 300px;
+            height: 200px;
+            background: var(--background);
+            border-radius: var(--radius);
+            margin: 16px auto;
+            border: 2px dashed var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--on-background);
+        }
+
+        .camera-preview video,
+        .camera-preview canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: var(--radius);
+            object-fit: cover;
+        }
+
+        /* LOCATION STATUS */
+        .location-status {
+            padding: 12px;
+            border-radius: var(--radius);
+            margin: 12px 0;
+            text-align: center;
+        }
+
+        .location-status.success {
+            background: var(--accent);
+            color: var(--primary-dark);
+        }
+
+        .location-status.error {
+            background: #ffebee;
+            color: var(--danger);
+        }
+
+        .location-status.info {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        /* ADMIN STYLES */
+        .admin-section {
+            margin-bottom: 24px;
+        }
+
+        .user-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: var(--background);
+            border-radius: var(--radius);
+            margin-bottom: 8px;
+        }
+
+        .user-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .time-setting-day {
+            background: var(--background);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        .day-header {
+            font-weight: bold;
+            margin-bottom: 12px;
+            color: var(--primary-dark);
+        }
+
+        .time-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            align-items: end;
+        }
+
+        /* STATUS */
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .status-item:last-child {
+            border-bottom: none;
+        }
+
+        .status-success {
+            color: var(--success);
+        }
+
+        .status-warning {
+            color: var(--warning);
+        }
+
+        /* TABLE STYLES */
+        .table-container {
+            overflow-x: auto;
+            margin-top: 16px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        th, td {
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background: var(--primary);
+            color: white;
+            font-weight: bold;
+        }
+
+        tr:hover {
+            background: var(--background);
+        }
+
+        /* FILTER SECTION */
+        .filter-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 12px;
+            margin-bottom: 16px;
+            align-items: end;
+        }
+
+        /* INSENTIF SETTINGS */
+        .insentif-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: var(--background);
+            border-radius: var(--radius);
+            margin-bottom: 8px;
+        }
+
+        .insentif-time {
+            font-weight: bold;
+            color: var(--primary-dark);
+        }
+
+        .insentif-amount {
+            color: var(--success);
+            font-weight: bold;
+        }
+
+        /* LOADING */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* SPECIAL SCHEDULE */
+        .special-schedule-item {
+            background: var(--background);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        .special-schedule-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+    </style>
+</head>
+<body>
+    <!-- LOGIN PAGE -->
+    <div id="loginPage">
+        <div class="container" style="max-width: 400px; margin: 100px auto; padding: 20px;">
+            <div class="card" style="text-align: center;">
+                <div style="font-size: 3rem; color: var(--primary); margin-bottom: 20px;">
+                    <i class="fas fa-fingerprint"></i>
+                </div>
+                <h1 style="color: var(--primary-dark); margin-bottom: 10px;">SIP DA</h1>
+                <p style="color: var(--on-background); margin-bottom: 30px;">Sistem Presensi Digital</p>
+                
+                <form id="loginForm">
+                    <div class="form-group">
+                        <input type="text" id="username" placeholder="Username" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="password" id="password" placeholder="Password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full">
+                        <i class="fas fa-sign-in-alt"></i> Login
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP -->
+    <div id="mainApp" style="display: none;">
+        <header class="header">
+            <div class="container">
+                <div class="header-content">
+                    <div class="header-info">
+                        <h1 id="greeting">Halo, User! 👋</h1>
+                        <p>SIP DA - Presensi Digital</p>
+                    </div>
+                    <button class="logout-btn" title="Logout">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="container">
+                
+                <!-- TAB: ABSEN -->
+                <div id="absen" class="tab-content active">
+                    <!-- TIME INFO -->
+                    <div class="card time-info">
+                        <div class="current-time" id="currentTime">00:00:00</div>
+                        <div class="countdown early" id="countdown">Memuat...</div>
+                        
+                        <div class="schedule-info">
+                            <div class="schedule-item">
+                                <div class="label">Presensi Masuk</div>
+                                <div class="time" id="masukTime">08:00</div>
+                            </div>
+                            <div class="schedule-item">
+                                <div class="label">Presensi Pulang</div>
+                                <div class="time" id="pulangTime">16:00</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TODAY STATUS -->
+                    <div class="card">
+                        <h3 style="margin-bottom: 16px;">Status Hari Ini</h3>
+                        <div class="status-item">
+                            <span>Presensi Masuk:</span>
+                            <span id="statusMasuk" class="status-warning">Belum</span>
+                        </div>
+                        <div class="status-item">
+                            <span>Presensi Pulang:</span>
+                            <span id="statusPulang" class="status-warning">Belum</span>
+                        </div>
+                    </div>
+
+                    <!-- PRESENSI OPTIONS -->
+                    <div class="presensi-options">
+                        <!-- WFO OPTION -->
+                        <div class="presensi-option active">
+                            <div class="option-header">
+                                <h3>Work From Office (WFO)</h3>
+                                <span class="option-badge badge-wfo">REKOMENDASI</span>
+                            </div>
+                            <p class="option-description">Posisi anda sudah masuk koordinat (SMK Darulabror)</p>
+                            <button class="btn btn-primary btn-full" id="presensiMasukBtn">
+                                <i class="fas fa-camera"></i> Presensi Masuk
+                            </button>
+                            <button class="btn btn-secondary btn-full" id="presensiPulangBtn" style="margin-top: 8px;">
+                                <i class="fas fa-home"></i> Presensi Pulang
+                            </button>
+                        </div>
+
+                        <!-- WFH & IZIN OPTION -->
+                        <div class="presensi-option">
+                            <div class="option-header">
+                                <h3>Izin & WFH</h3>
+                                <span class="option-badge badge-wfh">PERLU IZIN</span>
+                            </div>
+                            <p class="option-description">Ajukan izin tidak masuk atau Work From Home</p>
+                            <button class="btn btn-secondary btn-full" id="ajukanIzinBtn" style="margin-bottom: 8px;">
+                                <i class="fas fa-envelope"></i> Ajukan Izin
+                            </button>
+                            <button class="btn btn-secondary btn-full" id="ajukanWFHBtn">
+                                <i class="fas fa-laptop-house"></i> Ajukan WFH
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB: HISTORY -->
+                <div id="history" class="tab-content">
+                    <div class="card">
+                        <h3 style="margin-bottom: 16px;">Riwayat Presensi</h3>
+                        
+                        <!-- FILTER BULAN -->
+                        <div class="filter-section">
+                            <div class="form-group">
+                                <label>Pilih Bulan</label>
+                                <select id="historyMonth">
+                                    <!-- Options will be populated by JavaScript -->
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Tahun</label>
+                                <select id="historyYear">
+                                    <!-- Options will be populated by JavaScript -->
+                                </select>
+                            </div>
+                            <button class="btn btn-primary" id="filterHistoryBtn">
+                                <i class="fas fa-filter"></i> Filter
+                            </button>
+                        </div>
+                        
+                        <div id="historyList">
+                            <p style="text-align: center; color: var(--on-background); padding: 20px;">
+                                Memuat riwayat presensi...
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB: PROFILE -->
+                <div id="profile" class="tab-content">
+                    <div class="card">
+                        <div style="text-align: center; margin-bottom: 20px;">
+                            <div style="width: 80px; height: 80px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 16px;">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <h3 id="profileName">User</h3>
+                            <p id="profileRole" style="color: var(--on-background);">Role</p>
+                        </div>
+                        
+                        <form id="profileForm">
+                            <div class="form-group">
+                                <label>Nama Lengkap</label>
+                                <input type="text" id="profileNama" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Email</label>
+                                <input type="email" id="profileEmail" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Password Baru</label>
+                                <input type="password" id="profilePassword" placeholder="Kosongkan jika tidak ingin mengubah">
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-full">
+                                <i class="fas fa-save"></i> Simpan Perubahan
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- TAB: ADMIN -->
+                <div id="admin" class="tab-content">
+                    <div class="card">
+                        <!-- REKAP SEMUA PENGGUNA -->
+                        <div class="admin-section">
+                            <h3><i class="fas fa-chart-bar"></i> Rekap Semua Pengguna</h3>
+                            
+                            <div class="filter-section">
+                                <div class="form-group">
+                                    <label>Bulan</label>
+                                    <select id="rekapMonth">
+                                        <!-- Options will be populated by JavaScript -->
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Tahun</label>
+                                    <select id="rekapYear">
+                                        <!-- Options will be populated by JavaScript -->
+                                    </select>
+                                </div>
+                                <button class="btn btn-success" id="exportXLSXBtn">
+                                    <i class="fas fa-file-excel"></i> Export XLSX
+                                </button>
+                            </div>
+                            
+                            <div class="table-container">
+                                <table id="rekapTable">
+                                    <thead>
+                                        <tr>
+                                            <th>No</th>
+                                            <th>Nama</th>
+                                            <th>Status</th>
+                                            <th>Hadir</th>
+                                            <th>Sakit</th>
+                                            <th>Izin</th>
+                                            <th>Alpha</th>
+                                            <th>Dispen</th>
+                                            <th>Cuti</th>
+                                            <th>Terlambat</th>
+                                            <th>WFH</th>
+                                            <th>Tunjangan</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td colspan="12" style="text-align: center; padding: 20px;">
+                                                Memuat data rekap...
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- MANAJEMEN PENGGUNA -->
+                        <div class="admin-section">
+                            <h3><i class="fas fa-users"></i> Manajemen Pengguna</h3>
+                            <button class="btn btn-primary" id="addUserBtn">
+                                <i class="fas fa-plus"></i> Tambah Pengguna
+                            </button>
+                            
+                            <div class="user-list" id="userList" style="margin-top: 16px;">
+                                <!-- Daftar user akan dimuat di sini -->
+                            </div>
+                        </div>
+
+                        <!-- PENGATURAN WAKTU KHUSUS -->
+                        <div class="admin-section">
+                            <h3><i class="fas fa-user-clock"></i> Pengaturan Waktu Khusus</h3>
+                            <div id="specialSchedulesList">
+                                <!-- Daftar jadwal khusus akan dimuat di sini -->
+                            </div>
+                            <button class="btn btn-primary" id="addSpecialScheduleBtn">
+                                <i class="fas fa-plus"></i> Tambah Jadwal Khusus
+                            </button>
+                        </div>
+
+                        <!-- PENGATURAN WAKTU UMUM -->
+                        <div class="admin-section">
+                            <h3><i class="fas fa-clock"></i> Pengaturan Waktu Presensi Umum</h3>
+                            <div id="timeSettings">
+                                <!-- Pengaturan waktu akan dimuat di sini -->
+                            </div>
+                            <button class="btn btn-primary" id="saveTimeSettingsBtn">
+                                <i class="fas fa-save"></i> Simpan Pengaturan Waktu
+                            </button>
+                        </div>
+
+                        <!-- PENGATURAN INSENTIF -->
+                        <div class="admin-section">
+                            <h3><i class="fas fa-money-bill-wave"></i> Pengaturan Insentif Kehadiran</h3>
+                            <div id="insentifSettings">
+                                <!-- Pengaturan insentif akan dimuat di sini -->
+                            </div>
+                            <button class="btn btn-primary" id="addInsentifBtn" style="margin-bottom: 12px;">
+                                <i class="fas fa-plus"></i> Tambah Insentif
+                            </button>
+                            <button class="btn btn-primary" id="saveInsentifSettingsBtn">
+                                <i class="fas fa-save"></i> Simpan Pengaturan Insentif
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+
+        <!-- BOTTOM NAVIGATION -->
+        <nav class="bottom-nav">
+            <button class="nav-item active" data-tab="absen">
+                <i class="fas fa-fingerprint nav-icon"></i>
+                <span class="nav-label">Absen</span>
+            </button>
+            
+            <button class="nav-item" data-tab="history">
+                <i class="fas fa-history nav-icon"></i>
+                <span class="nav-label">History</span>
+            </button>
+            
+            <button class="nav-item" data-tab="profile">
+                <i class="fas fa-user nav-icon"></i>
+                <span class="nav-label">Profile</span>
+            </button>
+            
+            <button class="nav-item" data-tab="admin" id="adminNavButton">
+                <i class="fas fa-shield-alt nav-icon"></i>
+                <span class="nav-label">Admin</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- MODALS -->
+    <div class="modal" id="presensiModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="presensiModalTitle">Presensi</h3>
+                <button class="modal-close" id="closePresensiModal">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="locationStatus" class="location-status info">
+                    <i class="fas fa-spinner fa-spin"></i> Memeriksa lokasi...
+                </div>
+                
+                <div style="text-align: center; margin: 12px 0;">
+                    <button class="btn btn-secondary btn-small" id="refreshLocationBtn">
+                        <i class="fas fa-sync-alt"></i> Refresh Lokasi
+                    </button>
+                </div>
+                
+                <div id="cameraSection" style="display: none;">
+                    <div class="camera-preview" id="cameraPreview">
+                        <span>Kamera akan diaktifkan...</span>
+                    </div>
+                    <button class="btn btn-primary btn-full" id="captureBtn" style="margin-top: 16px;">
+                        <i class="fas fa-camera"></i> Ambil Foto & Presensi
+                    </button>
+                </div>
+
+                <div id="presensiSuccess" style="display: none; text-align: center;">
+                    <i class="fas fa-check-circle" style="font-size: 3rem; color: var(--success); margin-bottom: 16px;"></i>
+                    <h3>Presensi Berhasil!</h3>
+                    <p id="successMessage"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="izinModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Pengajuan Izin</h3>
+                <button class="modal-close" id="closeIzinModal">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="izinForm">
+                    <div class="form-group">
+                        <label>Tanggal Izin</label>
+                        <input type="date" id="izinDate" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Jenis Izin</label>
+                        <select id="izinType" required>
+                            <option value="">Pilih jenis izin</option>
+                            <option value="sakit">Sakit</option>
+                            <option value="izin">Izin</option>
+                            <option value="cuti">Cuti</option>
+                            <option value="dinas">Dinas Luar</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Keterangan</label>
+                        <textarea id="izinDetail" placeholder="Jelaskan alasan izin secara detail..." required></textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-full">
+                        <i class="fas fa-paper-plane"></i> Ajukan Izin
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="wfhModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Pengajuan Work From Home</h3>
+                <button class="modal-close" id="closeWfhModal">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="wfhForm">
+                    <div class="form-group">
+                        <label>Tanggal WFH</label>
+                        <input type="date" id="wfhDate" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Alasan WFH</label>
+                        <select id="wfhReason" required>
+                            <option value="">Pilih alasan</option>
+                            <option value="sakit">Sakit</option>
+                            <option value="keluarga">Keperluan Keluarga</option>
+                            <option value="dinas">Dinas Luar</option>
+                            <option value="lainnya">Lainnya</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Keterangan Detail</label>
+                        <textarea id="wfhDetail" placeholder="Jelaskan alasan WFH secara detail..." required></textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-full">
+                        <i class="fas fa-paper-plane"></i> Ajukan ke Kepala Sekolah
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="addUserModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Tambah Pengguna Baru</h3>
+                <button class="modal-close" id="closeAddUserModal">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="addUserForm">
+                    <div class="form-group">
+                        <label>Nama Lengkap</label>
+                        <input type="text" id="newUserName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Username</label>
+                        <input type="text" id="newUserUsername" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="newUserEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="newUserPassword" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Status Pegawai</label>
+                        <select id="newUserStatus" required>
+                            <option value="Guru">Guru</option>
+                            <option value="Karyawan">Karyawan</option>
+                            <option value="SIP">Guru/Karyawan SIP</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Role</label>
+                        <select id="newUserRole" required>
+                            <option value="user">User</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full">
+                        <i class="fas fa-save"></i> Simpan Pengguna
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="addSpecialScheduleModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Tambah Jadwal Khusus</h3>
+                <button class="modal-close" id="closeAddSpecialScheduleModal">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="addSpecialScheduleForm">
+                    <div class="form-group">
+                        <label>Pilih Pengguna</label>
+                        <select id="specialScheduleUser" required>
+                            <option value="">Pilih pengguna</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Waktu Masuk</label>
+                        <input type="time" id="specialScheduleMasuk" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Waktu Pulang</label>
+                        <input type="time" id="specialSchedulePulang" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Hari Efektif</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                            <label><input type="checkbox" name="specialScheduleDays" value="Senin"> Senin</label>
+                            <label><input type="checkbox" name="specialScheduleDays" value="Selasa"> Selasa</label>
+                            <label><input type="checkbox" name="specialScheduleDays" value="Rabu"> Rabu</label>
+                            <label><input type="checkbox" name="specialScheduleDays" value="Kamis"> Kamis</label>
+                            <label><input type="checkbox" name="specialScheduleDays" value="Jumat"> Jumat</label>
+                            <label><input type="checkbox" name="specialScheduleDays" value="Sabtu"> Sabtu</label>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full">
+                        <i class="fas fa-save"></i> Simpan Jadwal Khusus
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="addInsentifModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Tambah Insentif Kehadiran</h3>
+                <button class="modal-close" id="closeAddInsentifModal">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="addInsentifForm">
+                    <div class="form-group">
+                        <label>Waktu Maksimal (Sebelum)</label>
+                        <input type="time" id="insentifTime" required step="1">
+                    </div>
+                    <div class="form-group">
+                        <label>Jumlah Insentif (Rp)</label>
+                        <input type="number" id="insentifAmount" required min="0">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full">
+                        <i class="fas fa-save"></i> Tambah Insentif
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase Configuration -->
+    <script>
+        // Firebase Configuration - GANTI DENGAN CONFIG ANDA
+        const firebaseConfig = {
+              apiKey: "AIzaSyBwRf9ZiufiTTWIF3b1aNVTtBuBiJ4tILo",
+              authDomain: "presensida.firebaseapp.com",
+              projectId: "presensida",
+              storageBucket: "presensida.firebasestorage.app",
+              messagingSenderId: "418506454093",
+              appId: "1:418506454093:web:d6da410c3622ed5f7f9804"
+            };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const storage = firebase.storage();
+    </script>
+
+    <script>
+        // FIREBASE DATABASE SERVICE
+        class FirebaseDatabase {
+            constructor() {
+                this.collections = {
+                    users: 'users',
+                    presensi: 'presensi',
+                    settings: 'settings',
+                    insentif: 'insentif',
+                    specialSchedules: 'special_schedules'
+                };
+            }
+
+            // USER OPERATIONS
+            async getUserById(userId) {
+                try {
+                    const doc = await db.collection(this.collections.users).doc(userId).get();
+                    return doc.exists ? { id: doc.id, ...doc.data() } : null;
+                } catch (error) {
+                    console.error('Error getting user:', error);
+                    return null;
+                }
+            }
+
+            async getUserByUsername(username) {
+                try {
+                    const snapshot = await db.collection(this.collections.users)
+                        .where('username', '==', username)
+                        .get();
+                    
+                    if (snapshot.empty) return null;
+                    
+                    const doc = snapshot.docs[0];
+                    return { id: doc.id, ...doc.data() };
+                } catch (error) {
+                    console.error('Error getting user by username:', error);
+                    return null;
+                }
+            }
+
+            async getAllUsers() {
+                try {
+                    const snapshot = await db.collection(this.collections.users).get();
+                    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                } catch (error) {
+                    console.error('Error getting all users:', error);
+                    return [];
+                }
+            }
+
+            async createUser(userData) {
+                try {
+                    const docRef = await db.collection(this.collections.users).add({
+                        ...userData,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    return docRef.id;
+                } catch (error) {
+                    console.error('Error creating user:', error);
+                    throw error;
+                }
+            }
+
+            async updateUser(userId, updates) {
+                try {
+                    await db.collection(this.collections.users).doc(userId).update({
+                        ...updates,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                } catch (error) {
+                    console.error('Error updating user:', error);
+                    throw error;
+                }
+            }
+
+            async deleteUser(userId) {
+                try {
+                    await db.collection(this.collections.users).doc(userId).delete();
+                } catch (error) {
+                    console.error('Error deleting user:', error);
+                    throw error;
+                }
+            }
+
+            // PRESENSI OPERATIONS
+            async createPresensi(presensiData) {
+                try {
+                    const docRef = await db.collection(this.collections.presensi).add({
+                        ...presensiData,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    return docRef.id;
+                } catch (error) {
+                    console.error('Error creating presensi:', error);
+                    throw error;
+                }
+            }
+
+            async getPresensiByUser(userId, limit = 100) {
+                try {
+                    const snapshot = await db.collection(this.collections.presensi)
+                        .where('user_id', '==', userId)
+                        .orderBy('createdAt', 'desc')
+                        .limit(limit)
+                        .get();
+                    
+                    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                } catch (error) {
+                    console.error('Error getting presensi by user:', error);
+                    return [];
+                }
+            }
+
+            async getTodayPresensi(userId) {
+                try {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    
+                    const tomorrow = new Date(today);
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+
+                    const snapshot = await db.collection(this.collections.presensi)
+                        .where('user_id', '==', userId)
+                        .where('timestamp', '>=', today.toISOString())
+                        .where('timestamp', '<', tomorrow.toISOString())
+                        .get();
+                    
+                    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                } catch (error) {
+                    console.error('Error getting today presensi:', error);
+                    return [];
+                }
+            }
+
+            async getPresensiByMonth(userId, year, month) {
+                try {
+                    const startDate = new Date(year, month - 1, 1);
+                    const endDate = new Date(year, month, 0, 23, 59, 59);
+
+                    const snapshot = await db.collection(this.collections.presensi)
+                        .where('user_id', '==', userId)
+                        .where('timestamp', '>=', startDate.toISOString())
+                        .where('timestamp', '<=', endDate.toISOString())
+                        .get();
+                    
+                    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                } catch (error) {
+                    console.error('Error getting monthly presensi:', error);
+                    return [];
+                }
+            }
+
+            // SETTINGS OPERATIONS
+            async getSettings() {
+                try {
+                    const doc = await db.collection(this.collections.settings).doc('app_settings').get();
+                    if (doc.exists) {
+                        return doc.data();
+                    } else {
+                        // Create default settings
+                        const defaultSettings = this.getDefaultSettings();
+                        await this.saveSettings(defaultSettings);
+                        return defaultSettings;
+                    }
+                } catch (error) {
+                    console.error('Error getting settings:', error);
+                    return this.getDefaultSettings();
+                }
+            }
+
+            async saveSettings(settings) {
+                try {
+                    await db.collection(this.collections.settings).doc('app_settings').set({
+                        ...settings,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true });
+                } catch (error) {
+                    console.error('Error saving settings:', error);
+                    throw error;
+                }
+            }
+
+            // INSENTIF OPERATIONS
+            async getInsentifRules() {
+                try {
+                    const snapshot = await db.collection(this.collections.insentif)
+                        .orderBy('time')
+                        .get();
+                    
+                    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                } catch (error) {
+                    console.error('Error getting insentif rules:', error);
+                    return [];
+                }
+            }
+
+            async addInsentifRule(rule) {
+                try {
+                    await db.collection(this.collections.insentif).add({
+                        ...rule,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                } catch (error) {
+                    console.error('Error adding insentif rule:', error);
+                    throw error;
+                }
+            }
+
+            async deleteInsentifRule(ruleId) {
+                try {
+                    await db.collection(this.collections.insentif).doc(ruleId).delete();
+                } catch (error) {
+                    console.error('Error deleting insentif rule:', error);
+                    throw error;
+                }
+            }
+
+            // SPECIAL SCHEDULES
+            async getSpecialSchedules() {
+                try {
+                    const snapshot = await db.collection(this.collections.specialSchedules).get();
+                    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                } catch (error) {
+                    console.error('Error getting special schedules:', error);
+                    return [];
+                }
+            }
+
+            async addSpecialSchedule(schedule) {
+                try {
+                    await db.collection(this.collections.specialSchedules).add({
+                        ...schedule,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                } catch (error) {
+                    console.error('Error adding special schedule:', error);
+                    throw error;
+                }
+            }
+
+            async deleteSpecialSchedule(scheduleId) {
+                try {
+                    await db.collection(this.collections.specialSchedules).doc(scheduleId).delete();
+                } catch (error) {
+                    console.error('Error deleting special schedule:', error);
+                    throw error;
+                }
+            }
+
+            // DEFAULT SETTINGS
+            getDefaultSettings() {
+                return {
+                    schoolLocation: { 
+                        lat: -7.250445, 
+                        lng: 112.768845, 
+                        radius: 100 
+                    },
+                    workHours: {
+                        'Senin': { masuk: '07:00', pulang: '16:00' },
+                        'Selasa': { masuk: '07:00', pulang: '16:00' },
+                        'Rabu': { masuk: '07:00', pulang: '16:00' },
+                        'Kamis': { masuk: '07:00', pulang: '16:00' },
+                        'Jumat': { masuk: '07:00', pulang: '16:00' },
+                        'Sabtu': { masuk: '08:00', pulang: '12:00' },
+                        'Minggu': { masuk: '00:00', pulang: '00:00' }
+                    },
+                    specialSchedules: {}
+                };
+            }
+        }
+
+        // FIREBASE AUTH SERVICE
+        class FirebaseAuthService {
+            constructor() {
+                this.auth = auth;
+            }
+
+            async login(email, password) {
+                try {
+                    const userCredential = await this.auth.signInWithEmailAndPassword(email, password);
+                    return userCredential.user;
+                } catch (error) {
+                    throw new Error(this.getAuthErrorMessage(error));
+                }
+            }
+
+            async register(userData) {
+                try {
+                    const userCredential = await this.auth.createUserWithEmailAndPassword(
+                        userData.email, 
+                        userData.password
+                    );
+                    
+                    return userCredential.user;
+                } catch (error) {
+                    throw new Error(this.getAuthErrorMessage(error));
+                }
+            }
+
+            async logout() {
+                await this.auth.signOut();
+            }
+
+            getCurrentUser() {
+                return this.auth.currentUser;
+            }
+
+            onAuthStateChanged(callback) {
+                return this.auth.onAuthStateChanged(callback);
+            }
+
+            getAuthErrorMessage(error) {
+                switch (error.code) {
+                    case 'auth/invalid-email':
+                        return 'Email tidak valid';
+                    case 'auth/user-disabled':
+                        return 'Akun dinonaktifkan';
+                    case 'auth/user-not-found':
+                        return 'User tidak ditemukan';
+                    case 'auth/wrong-password':
+                        return 'Password salah';
+                    case 'auth/email-already-in-use':
+                        return 'Email sudah digunakan';
+                    case 'auth/weak-password':
+                        return 'Password terlalu lemah';
+                    default:
+                        return error.message;
+                }
+            }
+        }
+
+        // GEOLOCATION SERVICE
+        class GeolocationService {
+            constructor() {
+                this.schoolLocation = { lat: -7.250445, lng: 112.768845 };
+                this.allowedRadius = 100;
+            }
+
+            getCurrentLocation() {
+                return new Promise((resolve, reject) => {
+                    if (!navigator.geolocation) {
+                        reject('Geolocation tidak didukung browser');
+                        return;
+                    }
+
+                    navigator.geolocation.getCurrentPosition(
+                        position => resolve({
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude,
+                            accuracy: position.coords.accuracy
+                        }),
+                        error => reject(this.getErrorMsg(error)),
+                        { 
+                            enableHighAccuracy: true,
+                            timeout: 15000,
+                            maximumAge: 0
+                        }
+                    );
+                });
+            }
+
+            getErrorMsg(error) {
+                switch(error.code) {
+                    case error.PERMISSION_DENIED:
+                        return 'Akses lokasi ditolak. Izinkan akses lokasi untuk presensi.';
+                    case error.POSITION_UNAVAILABLE:
+                        return 'Informasi lokasi tidak tersedia. Pastikan GPS aktif.';
+                    case error.TIMEOUT:
+                        return 'Request lokasi timeout. Coba refresh lokasi.';
+                    default:
+                        return 'Error tidak diketahui: ' + error.message;
+                }
+            }
+
+            calculateDistance(lat1, lon1, lat2, lon2) {
+                const R = 6371000;
+                const dLat = (lat2 - lat1) * Math.PI / 180;
+                const dLon = (lon2 - lon1) * Math.PI / 180;
+                const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                          Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                          Math.sin(dLon/2) * Math.sin(dLon/2);
+                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                return R * c;
+            }
+
+            async isWithinSchoolRadius() {
+                try {
+                    const coords = await this.getCurrentLocation();
+                    const distance = this.calculateDistance(
+                        coords.latitude, coords.longitude,
+                        this.schoolLocation.lat, this.schoolLocation.lng
+                    );
+                    
+                    return {
+                        withinRadius: distance <= this.allowedRadius,
+                        distance: Math.round(distance),
+                        coords: coords
+                    };
+                } catch (error) {
+                    throw new Error(error);
+                }
+            }
+        }
+
+        // CAMERA SERVICE
+        class CameraService {
+            constructor() {
+                this.stream = null;
+                this.video = null;
+                this.canvas = null;
+            }
+
+            async startCamera(videoElement) {
+                try {
+                    this.stream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { 
+                            facingMode: 'environment',
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 }
+                        } 
+                    });
+                    
+                    this.video = videoElement;
+                    this.video.srcObject = this.stream;
+                    this.video.play();
+                    
+                    return true;
+                } catch (error) {
+                    throw new Error('Tidak dapat mengakses kamera: ' + error.message);
+                }
+            }
+
+            capturePhoto() {
+                if (!this.video) throw new Error('Kamera belum diaktifkan');
+                
+                if (!this.canvas) {
+                    this.canvas = document.createElement('canvas');
+                    this.canvas.width = this.video.videoWidth;
+                    this.canvas.height = this.video.videoHeight;
+                }
+                
+                const context = this.canvas.getContext('2d');
+                context.drawImage(this.video, 0, 0);
+                
+                return this.canvas.toDataURL('image/jpeg', 0.8);
+            }
+
+            stopCamera() {
+                if (this.stream) {
+                    this.stream.getTracks().forEach(track => track.stop());
+                    this.stream = null;
+                }
+                if (this.video) {
+                    this.video.srcObject = null;
+                }
+            }
+        }
+
+        // MAIN APPLICATION
+        class SIPDAApp {
+            constructor() {
+                this.db = new FirebaseDatabase();
+                this.auth = new FirebaseAuthService();
+                this.geolocation = new GeolocationService();
+                this.camera = new CameraService();
+                this.currentUser = null;
+                this.currentPresensiType = null;
+                this.settings = null;
+                this.init();
+            }
+
+            async init() {
+                this.setupEventListeners();
+                this.startClock();
+                this.populateMonthYearFilters();
+                
+                // Load settings
+                this.settings = await this.db.getSettings();
+                
+                // Check auth state
+                this.auth.onAuthStateChanged(async (user) => {
+                    if (user) {
+                        const userData = await this.db.getUserById(user.uid);
+                        if (userData) {
+                            this.currentUser = userData;
+                            this.showMainApp();
+                        } else {
+                            this.showLogin();
+                        }
+                    } else {
+                        this.showLogin();
+                    }
+                });
+            }
+
+            async login(username, password) {
+                try {
+                    console.log('1. Attempting login...');
+                    const email = 'kangmoekpds112233@gmail.com';
+
+                    console.log('2. Firebase auth...');
+                    const firebaseUser = await this.auth.login(email, password);
+                    console.log('3. Auth success, UID:', firebaseUser.uid);
+
+                    console.log('4. Getting user data from Firestore...');
+                    const userData = await this.db.getUserById(firebaseUser.uid);
+                    console.log('5. User data:', userData);
+
+                    if (!userData) {
+                        throw new Error('Data user tidak ditemukan di Firestore');
+                    }
+
+                    this.currentUser = userData;
+                    this.showMainApp();
+                    return true;
+
+                } catch (error) {
+                    console.error('6. Login error:', error);
+                    alert('Login gagal: ' + error.message);
+                    return false;
+                }
+            }
+
+            async logout() {
+                try {
+                    await this.auth.logout();
+                    this.currentUser = null;
+                    this.showLogin();
+                } catch (error) {
+                    console.error('Logout error:', error);
+                }
+            }
+
+            showMainApp() {
+                document.getElementById('loginPage').style.display = 'none';
+                document.getElementById('mainApp').style.display = 'block';
+                this.updateUserInfo();
+                this.updateUI();
+            }
+
+            showLogin() {
+                document.getElementById('loginPage').style.display = 'block';
+                document.getElementById('mainApp').style.display = 'none';
+            }
+
+            updateUserInfo() {
+                if (!this.currentUser) return;
+                
+                document.getElementById('greeting').textContent = `Halo, ${this.currentUser.nama}! 👋`;
+                document.getElementById('profileName').textContent = this.currentUser.nama;
+                document.getElementById('profileRole').textContent = this.currentUser.role === 'admin' ? 'Administrator' : 'User';
+                document.getElementById('profileNama').value = this.currentUser.nama;
+                document.getElementById('profileEmail').value = this.currentUser.email || '';
+
+                if (this.currentUser.role !== 'admin') {
+                    document.getElementById('adminNavButton').style.display = 'none';
+                } else {
+                    document.getElementById('adminNavButton').style.display = 'flex';
+                    this.loadAdminData();
+                }
+            }
+
+            // PRESENSI FUNCTIONS
+            async startPresensi(type) {
+                this.currentPresensiType = type;
+                this.showModal('presensiModal');
+                document.getElementById('presensiModalTitle').textContent = `Presensi ${type === 'masuk' ? 'Masuk' : 'Pulang'}`;
+                
+                document.getElementById('locationStatus').style.display = 'block';
+                document.getElementById('cameraSection').style.display = 'none';
+                document.getElementById('presensiSuccess').style.display = 'none';
+                
+                await this.refreshLocation();
+            }
+
+            async refreshLocation() {
+                const locationStatus = document.getElementById('locationStatus');
+                locationStatus.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memperbarui lokasi...';
+                locationStatus.className = 'location-status info';
+                
+                try {
+                    const locationCheck = await this.geolocation.isWithinSchoolRadius();
+                    
+                    if (locationCheck.withinRadius) {
+                        locationStatus.innerHTML = 
+                            `<i class="fas fa-check-circle"></i> Anda berada dalam jangkauan presensi (${locationCheck.distance}m dari sekolah)`;
+                        locationStatus.className = 'location-status success';
+                        
+                        document.getElementById('cameraSection').style.display = 'block';
+                        document.getElementById('captureBtn').disabled = false;
+                        
+                        // Start camera
+                        const video = document.createElement('video');
+                        video.setAttribute('playsinline', '');
+                        video.setAttribute('autoplay', '');
+                        document.getElementById('cameraPreview').innerHTML = '';
+                        document.getElementById('cameraPreview').appendChild(video);
+                        
+                        await this.camera.startCamera(video);
+                        
+                    } else {
+                        locationStatus.innerHTML = 
+                            `<i class="fas fa-times-circle"></i> Anda berada di luar jangkauan presensi (${locationCheck.distance}m dari sekolah). Harus dalam radius ${this.geolocation.allowedRadius}m.`;
+                        locationStatus.className = 'location-status error';
+                        document.getElementById('captureBtn').disabled = true;
+                    }
+                    
+                } catch (error) {
+                    locationStatus.innerHTML = 
+                        `<i class="fas fa-times-circle"></i> ${error.message}`;
+                    locationStatus.className = 'location-status error';
+                    document.getElementById('captureBtn').disabled = true;
+                }
+            }
+
+            async capturePresensi() {
+                try {
+                    const photoData = this.camera.capturePhoto();
+                    
+                    // Upload photo to Firebase Storage
+                    const photoUrl = await this.uploadPhoto(photoData, this.currentPresensiType);
+                    
+                    const presensiRecord = {
+                        user_id: this.currentUser.id,
+                        user_nama: this.currentUser.nama,
+                        user_email: this.currentUser.email,
+                        type: this.currentPresensiType,
+                        timestamp: new Date().toISOString(),
+                        date: new Date().toISOString().split('T')[0],
+                        status: 'Hadir',
+                        waktu: new Date().toLocaleTimeString('id-ID'),
+                        photo_url: photoUrl,
+                        location: await this.getCurrentLocationData()
+                    };
+
+                    await this.db.createPresensi(presensiRecord);
+                    
+                    document.getElementById('cameraSection').style.display = 'none';
+                    document.getElementById('presensiSuccess').style.display = 'block';
+                    document.getElementById('successMessage').textContent = 
+                        `Presensi ${this.currentPresensiType} berhasil dicatat pada ${new Date().toLocaleString('id-ID')}`;
+                    
+                    this.camera.stopCamera();
+                    
+                    setTimeout(() => {
+                        this.closeModal('presensiModal');
+                        this.updateUI();
+                    }, 2000);
+                    
+                } catch (error) {
+                    alert('Error melakukan presensi: ' + error.message);
+                }
+            }
+
+            async uploadPhoto(photoData, type) {
+                try {
+                    const timestamp = Date.now();
+                    const fileName = `presensi/${this.currentUser.id}_${type}_${timestamp}.jpg`;
+                    
+                    // Convert base64 to blob
+                    const response = await fetch(photoData);
+                    const blob = await response.blob();
+                    
+                    // Upload to Firebase Storage
+                    const storageRef = firebase.storage().ref();
+                    const photoRef = storageRef.child(fileName);
+                    await photoRef.put(blob);
+                    
+                    // Get download URL
+                    return await photoRef.getDownloadURL();
+                    
+                } catch (error) {
+                    console.error('Upload photo error:', error);
+                    return null;
+                }
+            }
+
+            async getCurrentLocationData() {
+                try {
+                    const location = await this.geolocation.getCurrentLocation();
+                    return {
+                        latitude: location.latitude,
+                        longitude: location.longitude,
+                        accuracy: location.accuracy,
+                        timestamp: new Date().toISOString()
+                    };
+                } catch (error) {
+                    return null;
+                }
+            }
+
+            // IZIN & WFH
+            async ajukanIzin(formData) {
+                try {
+                    const presensiRecord = {
+                        user_id: this.currentUser.id,
+                        user_nama: this.currentUser.nama,
+                        user_email: this.currentUser.email,
+                        type: formData.type,
+                        timestamp: new Date().toISOString(),
+                        date: formData.date,
+                        status: 'Menunggu Persetujuan',
+                        detail: formData.detail,
+                        jenis_izin: formData.type
+                    };
+
+                    await this.db.createPresensi(presensiRecord);
+                    alert('Pengajuan izin berhasil!');
+                    this.closeModal('izinModal');
+                } catch (error) {
+                    alert('Error mengajukan izin: ' + error.message);
+                }
+            }
+
+            async ajukanWFH(formData) {
+                try {
+                    const presensiRecord = {
+                        user_id: this.currentUser.id,
+                        user_nama: this.currentUser.nama,
+                        user_email: this.currentUser.email,
+                        type: 'wfh',
+                        timestamp: new Date().toISOString(),
+                        date: formData.date,
+                        status: 'Menunggu Persetujuan',
+                        reason: formData.reason,
+                        detail: formData.detail
+                    };
+
+                    await this.db.createPresensi(presensiRecord);
+                    
+                    const message = `Assalamu'alaikum Pak Kepala Sekolah.\n\nSaya ${this.currentUser.nama} mengajukan izin Work From Home pada tanggal ${formData.date} dengan alasan ${formData.reason}.\n\nKeterangan: ${formData.detail}\n\nTerima kasih atas perhatiannya.`;
+                    const encodedMessage = encodeURIComponent(message);
+                    const whatsappURL = `https://wa.me/6281234567890?text=${encodedMessage}`;
+                    
+                    window.open(whatsappURL, '_blank');
+                    alert('Pengajuan WFH berhasil! Silakan lanjutkan konfirmasi via WhatsApp.');
+                    this.closeModal('wfhModal');
+                } catch (error) {
+                    alert('Error mengajukan WFH: ' + error.message);
+                }
+            }
+
+            // PROFILE
+            async updateProfile(profileData) {
+                try {
+                    await this.db.updateUser(this.currentUser.id, profileData);
+                    this.currentUser = { ...this.currentUser, ...profileData };
+                    
+                    // Update email in Firebase Auth if changed
+                    if (profileData.email && profileData.email !== this.currentUser.email) {
+                        await this.auth.getCurrentUser().updateEmail(profileData.email);
+                    }
+                    
+                    // Update password if provided
+                    if (profileData.password) {
+                        await this.auth.getCurrentUser().updatePassword(profileData.password);
+                    }
+                    
+                    alert('Profile berhasil diupdate!');
+                    this.updateUserInfo();
+                    return true;
+                } catch (error) {
+                    alert('Error update profile: ' + error.message);
+                    return false;
+                }
+            }
+
+            // ADMIN FUNCTIONS
+            async loadAdminData() {
+                await this.loadUserList();
+                await this.loadTimeSettings();
+                await this.loadInsentifSettings();
+                await this.loadSpecialSchedules();
+                await this.loadRekapTable();
+            }
+
+            async loadUserList() {
+                try {
+                    const users = await this.db.getAllUsers();
+                    const userList = document.getElementById('userList');
+                    
+                    userList.innerHTML = users.map(user => `
+                        <div class="user-item">
+                            <div>
+                                <strong>${user.nama}</strong>
+                                <div style="font-size: 0.8rem; color: var(--on-background);">
+                                    ${user.username} | ${user.role} | ${user.status_pegawai}
+                                </div>
+                            </div>
+                            <div class="user-actions">
+                                <button class="btn btn-danger btn-small" onclick="app.deleteUser('${user.id}')" 
+                                        ${user.id === this.currentUser.id ? 'disabled' : ''}>
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `).join('');
+                } catch (error) {
+                    console.error('Error loading users:', error);
+                }
+            }
+
+            async loadTimeSettings() {
+                try {
+                    const settings = await this.db.getSettings();
+                    const workHours = settings.workHours || {};
+                    const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+                    
+                    const timeSettingsHTML = days.map(day => {
+                        const times = workHours[day] || { masuk: '00:00', pulang: '00:00' };
+                        return `
+                            <div class="time-setting-day">
+                                <div class="day-header">${day}</div>
+                                <div class="time-inputs">
+                                    <div class="form-group">
+                                        <label>Masuk</label>
+                                        <input type="time" value="${times.masuk}" data-day="${day}" data-type="masuk">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Pulang</label>
+                                        <input type="time" value="${times.pulang}" data-day="${day}" data-type="pulang">
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                    
+                    document.getElementById('timeSettings').innerHTML = timeSettingsHTML;
+                } catch (error) {
+                    console.error('Error loading time settings:', error);
+                }
+            }
+
+            async loadInsentifSettings() {
+                try {
+                    const insentifRules = await this.db.getInsentifRules();
+                    const insentifSettings = document.getElementById('insentifSettings');
+                    
+                    insentifSettings.innerHTML = insentifRules.map((rule, index) => `
+                        <div class="insentif-item">
+                            <div>
+                                <div class="insentif-time">Sebelum ${rule.time}</div>
+                                <div>Mendapatkan insentif</div>
+                            </div>
+                            <div class="insentif-amount">${this.formatCurrency(rule.amount)}</div>
+                            <div class="user-actions">
+                                <button class="btn btn-danger btn-small" onclick="app.removeInsentifRule('${rule.id}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `).join('');
+                } catch (error) {
+                    console.error('Error loading insentif settings:', error);
+                }
+            }
+
+            async loadSpecialSchedules() {
+                try {
+                    const specialSchedules = await this.db.getSpecialSchedules();
+                    const users = await this.db.getAllUsers();
+                    const specialSchedulesList = document.getElementById('specialSchedulesList');
+                    
+                    if (specialSchedules.length === 0) {
+                        specialSchedulesList.innerHTML = '<p style="text-align: center; color: var(--on-background); padding: 20px;">Belum ada jadwal khusus</p>';
+                        return;
+                    }
+                    
+                    specialSchedulesList.innerHTML = specialSchedules.map(schedule => {
+                        const user = users.find(u => u.id === schedule.userId);
+                        return `
+                            <div class="special-schedule-item">
+                                <div class="special-schedule-header">
+                                    <div>
+                                        <strong>${user ? user.nama : 'User tidak ditemukan'}</strong>
+                                        <div style="font-size: 0.8rem; color: var(--on-background);">
+                                            Masuk: ${schedule.masuk} | Pulang: ${schedule.pulang}
+                                        </div>
+                                    </div>
+                                    <div class="user-actions">
+                                        <button class="btn btn-danger btn-small" onclick="app.deleteSpecialSchedule('${schedule.id}')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div style="font-size: 0.8rem; color: var(--on-background);">
+                                    Hari: ${schedule.days ? schedule.days.join(', ') : 'Semua hari'}
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                } catch (error) {
+                    console.error('Error loading special schedules:', error);
+                }
+            }
+
+            async loadRekapTable() {
+                try {
+                    const month = document.getElementById('rekapMonth').value;
+                    const year = document.getElementById('rekapYear').value;
+                    const rekapData = await this.calculateRekapAllUsers(month, year);
+                    
+                    const tbody = document.querySelector('#rekapTable tbody');
+                    tbody.innerHTML = rekapData.map((row, index) => `
+                        <tr>
+                            <td>${row.No}</td>
+                            <td>${row.Nama}</td>
+                            <td>${row['Status Pegawai']}</td>
+                            <td>${row.Hadir}</td>
+                            <td>${row.Sakit}</td>
+                            <td>${row.Izin}</td>
+                            <td>${row.Alpha}</td>
+                            <td>${row.Dispen}</td>
+                            <td>${row.Cuti}</td>
+                            <td>${row.Terlambat}</td>
+                            <td>${row.WFH}</td>
+                            <td>${row.Tunjangan}</td>
+                        </tr>
+                    `).join('');
+                } catch (error) {
+                    console.error('Error loading rekap table:', error);
+                }
+            }
+
+            async calculateRekapAllUsers(month, year) {
+                try {
+                    const users = (await this.db.getAllUsers()).filter(u => u.role !== 'admin');
+                    const rekapData = [];
+                    
+                    for (const user of users) {
+                        const presensiData = await this.db.getPresensiByMonth(user.id, parseInt(year), parseInt(month));
+                        
+                        const stats = {
+                            Hadir: 0,
+                            Sakit: 0,
+                            Izin: 0,
+                            Alpha: 0,
+                            Dispen: 0,
+                            Cuti: 0,
+                            Terlambat: 0,
+                            WFH: 0
+                        };
+                        
+                        presensiData.forEach(p => {
+                            if (p.type === 'masuk' || p.type === 'pulang') {
+                                stats.Hadir++;
+                            } else if (p.jenis_izin === 'sakit') {
+                                stats.Sakit++;
+                            } else if (p.jenis_izin === 'izin') {
+                                stats.Izin++;
+                            } else if (p.type === 'wfh') {
+                                stats.WFH++;
+                            }
+                            // TODO: Implement logic for other statuses
+                        });
+                        
+                        rekapData.push({
+                            'No': rekapData.length + 1,
+                            'Nama': user.nama,
+                            'Status Pegawai': user.status_pegawai,
+                            'Hadir': stats.Hadir,
+                            'Sakit': stats.Sakit,
+                            'Izin': stats.Izin,
+                            'Alpha': stats.Alpha,
+                            'Dispen': stats.Dispen,
+                            'Cuti': stats.Cuti,
+                            'Terlambat': stats.Terlambat,
+                            'WFH': stats.WFH,
+                            'Tunjangan': this.formatCurrency(this.calculateTunjangan(stats))
+                        });
+                    }
+                    
+                    return rekapData;
+                } catch (error) {
+                    console.error('Error calculating rekap:', error);
+                    return [];
+                }
+            }
+
+            calculateTunjangan(stats) {
+                // Simple calculation for demonstration
+                const baseSalary = 100000;
+                const attendanceBonus = stats.Hadir * 5000;
+                const latePenalty = stats.Terlambat * 10000;
+                return baseSalary + attendanceBonus - latePenalty;
+            }
+
+            formatCurrency(amount) {
+                return new Intl.NumberFormat('id-ID', {
+                    style: 'currency',
+                    currency: 'IDR'
+                }).format(amount);
+            }
+
+            async addUser(userData) {
+                try {
+                    // Create user in Firebase Auth
+                    const firebaseUser = await this.auth.register({
+                        email: userData.email,
+                        password: userData.password,
+                        nama: userData.nama,
+                        username: userData.username,
+                        role: userData.role,
+                        status_pegawai: userData.status_pegawai
+                    });
+                    
+                    // Create user document in Firestore
+                    await this.db.createUser({
+                        nama: userData.nama,
+                        username: userData.username,
+                        email: userData.email,
+                        role: userData.role,
+                        status_pegawai: userData.status_pegawai
+                    });
+                    
+                    alert('User berhasil ditambahkan!');
+                    this.loadUserList();
+                    this.closeModal('addUserModal');
+                    return true;
+                    
+                } catch (error) {
+                    alert('Error menambah user: ' + error.message);
+                    return false;
+                }
+            }
+
+            async deleteUser(userId) {
+                if (userId === this.currentUser.id) {
+                    alert('Tidak bisa menghapus akun sendiri!');
+                    return;
+                }
+
+                if (confirm('Apakah Anda yakin ingin menghapus user ini?')) {
+                    try {
+                        await this.db.deleteUser(userId);
+                        alert('User berhasil dihapus!');
+                        this.loadUserList();
+                    } catch (error) {
+                        alert('Error menghapus user: ' + error.message);
+                    }
+                }
+            }
+
+            async saveTimeSettings() {
+                try {
+                    const settings = await this.db.getSettings();
+                    const timeInputs = document.querySelectorAll('#timeSettings input[data-day]');
+                    
+                    timeInputs.forEach(input => {
+                        const day = input.getAttribute('data-day');
+                        const type = input.getAttribute('data-type');
+                        const value = input.value;
+                        
+                        if (!settings.workHours[day]) {
+                            settings.workHours[day] = {};
+                        }
+                        settings.workHours[day][type] = value;
+                    });
+                    
+                    await this.db.saveSettings(settings);
+                    this.settings = settings;
+                    alert('Pengaturan waktu berhasil disimpan!');
+                } catch (error) {
+                    alert('Error menyimpan pengaturan waktu: ' + error.message);
+                }
+            }
+
+            async addInsentifRule() {
+                this.showModal('addInsentifModal');
+            }
+
+            async saveInsentifRule(formData) {
+                try {
+                    await this.db.addInsentifRule({
+                        time: formData.time + ':00',
+                        amount: parseInt(formData.amount)
+                    });
+                    
+                    alert('Insentif berhasil ditambahkan!');
+                    this.loadInsentifSettings();
+                    this.closeModal('addInsentifModal');
+                } catch (error) {
+                    alert('Error menambah insentif: ' + error.message);
+                }
+            }
+
+            async removeInsentifRule(ruleId) {
+                if (confirm('Apakah Anda yakin ingin menghapus rule insentif ini?')) {
+                    try {
+                        await this.db.deleteInsentifRule(ruleId);
+                        alert('Rule insentif berhasil dihapus!');
+                        this.loadInsentifSettings();
+                    } catch (error) {
+                        alert('Error menghapus rule insentif: ' + error.message);
+                    }
+                }
+            }
+
+            async addSpecialSchedule() {
+                try {
+                    const users = await this.db.getAllUsers();
+                    const userSelect = document.getElementById('specialScheduleUser');
+                    userSelect.innerHTML = '<option value="">Pilih pengguna</option>' +
+                        users.filter(u => u.role !== 'admin').map(u => 
+                            `<option value="${u.id}">${u.nama}</option>`
+                        ).join('');
+                    
+                    this.showModal('addSpecialScheduleModal');
+                } catch (error) {
+                    alert('Error memuat data user: ' + error.message);
+                }
+            }
+
+            async saveSpecialSchedule(formData) {
+                try {
+                    await this.db.addSpecialSchedule({
+                        userId: formData.userId,
+                        masuk: formData.masuk,
+                        pulang: formData.pulang,
+                        days: formData.days
+                    });
+                    
+                    alert('Jadwal khusus berhasil ditambahkan!');
+                    this.loadSpecialSchedules();
+                    this.closeModal('addSpecialScheduleModal');
+                } catch (error) {
+                    alert('Error menambah jadwal khusus: ' + error.message);
+                }
+            }
+
+            async deleteSpecialSchedule(scheduleId) {
+                if (confirm('Apakah Anda yakin ingin menghapus jadwal khusus ini?')) {
+                    try {
+                        await this.db.deleteSpecialSchedule(scheduleId);
+                        alert('Jadwal khusus berhasil dihapus!');
+                        this.loadSpecialSchedules();
+                    } catch (error) {
+                        alert('Error menghapus jadwal khusus: ' + error.message);
+                    }
+                }
+            }
+
+            generateRekapXLSX() {
+                const month = document.getElementById('rekapMonth').value;
+                const year = document.getElementById('rekapYear').value;
+                const table = document.getElementById('rekapTable');
+                
+                const ws = XLSX.utils.table_to_sheet(table);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Rekap Presensi");
+                
+                XLSX.writeFile(wb, `rekap-presensi-${month}-${year}.xlsx`);
+            }
+
+            // UI FUNCTIONS
+            async updateUI() {
+                await this.updatePresensiStatus();
+                await this.updateHistoryList();
+                this.updateTimeInfo();
+            }
+
+            async updatePresensiStatus() {
+                try {
+                    const todayPresensi = await this.db.getTodayPresensi(this.currentUser.id);
+                    
+                    const hasMasuk = todayPresensi.some(p => p.type === 'masuk');
+                    const hasPulang = todayPresensi.some(p => p.type === 'pulang');
+
+                    document.getElementById('statusMasuk').textContent = hasMasuk ? '✓ Sudah' : '✗ Belum';
+                    document.getElementById('statusMasuk').className = hasMasuk ? 'status-success' : 'status-warning';
+                    
+                    document.getElementById('statusPulang').textContent = hasPulang ? '✓ Sudah' : '✗ Belum';
+                    document.getElementById('statusPulang').className = hasPulang ? 'status-success' : 'status-warning';
+                } catch (error) {
+                    console.error('Error updating presensi status:', error);
+                }
+            }
+
+            async updateHistoryList() {
+                try {
+                    const history = await this.db.getPresensiByUser(this.currentUser.id, 10);
+                    const historyList = document.getElementById('historyList');
+                    
+                    if (history.length === 0) {
+                        historyList.innerHTML = '<p style="text-align: center; color: var(--on-background); padding: 20px;">Belum ada riwayat presensi</p>';
+                        return;
+                    }
+
+                    historyList.innerHTML = history.map(p => `
+                        <div class="status-item">
+                            <div>
+                                <strong>${new Date(p.timestamp).toLocaleDateString('id-ID')}</strong>
+                                <div style="font-size: 0.8rem; color: var(--on-background);">
+                                    ${p.type.toUpperCase()} - ${p.status}
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div>${p.waktu}</div>
+                                <div style="font-size: 0.8rem; color: var(--on-background);">
+                                    ${p.reason ? p.reason : ''}
+                                    ${p.detail ? p.detail : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                } catch (error) {
+                    console.error('Error updating history list:', error);
+                }
+            }
+
+            updateTimeInfo() {
+                const now = new Date();
+                const workHours = this.settings.workHours || {};
+                const today = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'][now.getDay()];
+                const todayWorkHours = workHours[today] || { masuk: '08:00', pulang: '16:00' };
+
+                document.getElementById('masukTime').textContent = todayWorkHours.masuk;
+                document.getElementById('pulangTime').textContent = todayWorkHours.pulang;
+            }
+
+            startClock() {
+                setInterval(() => {
+                    const now = new Date();
+                    document.getElementById('currentTime').textContent = 
+                        now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                    
+                    this.updateCountdown(now);
+                }, 1000);
+            }
+
+            updateCountdown(now) {
+                const countdownEl = document.getElementById('countdown');
+                const workHours = this.settings.workHours || {};
+                const today = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'][now.getDay()];
+                const todayWorkHours = workHours[today] || { masuk: '08:00', pulang: '16:00' };
+
+                const [masukHour, masukMinute] = todayWorkHours.masuk.split(':').map(Number);
+                const [pulangHour, pulangMinute] = todayWorkHours.pulang.split(':').map(Number);
+                
+                const masukTime = new Date();
+                masukTime.setHours(masukHour, masukMinute, 0, 0);
+                
+                const pulangTime = new Date();
+                pulangTime.setHours(pulangHour, pulangMinute, 0, 0);
+
+                if (now < masukTime) {
+                    const diff = masukTime - now;
+                    const minutes = Math.floor(diff / 60000);
+                    countdownEl.textContent = `Presensi masuk: ${minutes} menit lagi`;
+                    countdownEl.className = 'countdown early';
+                } else if (now >= masukTime && now < pulangTime) {
+                    const diff = pulangTime - now;
+                    const hours = Math.floor(diff / 3600000);
+                    const minutes = Math.floor((diff % 3600000) / 60000);
+                    countdownEl.textContent = `Presensi pulang: ${hours}j ${minutes}m lagi`;
+                    countdownEl.className = 'countdown going-home';
+                } else {
+                    countdownEl.textContent = `Waktu presensi telah berakhir`;
+                    countdownEl.className = 'countdown late';
+                }
+            }
+
+            populateMonthYearFilters() {
+                const months = [
+                    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+                    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+                ];
+                
+                const currentYear = new Date().getFullYear();
+                const years = [currentYear - 1, currentYear, currentYear + 1];
+                
+                const historyMonth = document.getElementById('historyMonth');
+                const historyYear = document.getElementById('historyYear');
+                const rekapMonth = document.getElementById('rekapMonth');
+                const rekapYear = document.getElementById('rekapYear');
+                
+                months.forEach((month, index) => {
+                    const option = `<option value="${index + 1}">${month}</option>`;
+                    historyMonth.innerHTML += option;
+                    rekapMonth.innerHTML += option;
+                });
+                
+                years.forEach(year => {
+                    const option = `<option value="${year}">${year}</option>`;
+                    historyYear.innerHTML += option;
+                    rekapYear.innerHTML += option;
+                });
+                
+                const currentMonth = new Date().getMonth() + 1;
+                historyMonth.value = currentMonth;
+                historyYear.value = currentYear;
+                rekapMonth.value = currentMonth;
+                rekapYear.value = currentYear;
+            }
+
+            showModal(modalId) {
+                document.getElementById(modalId).classList.add('active');
+            }
+
+            closeModal(modalId) {
+                document.getElementById(modalId).classList.remove('active');
+                this.camera.stopCamera();
+                
+                // Reset forms
+                const forms = document.querySelectorAll(`#${modalId} form`);
+                forms.forEach(form => form.reset());
+            }
+
+            setupEventListeners() {
+                // Login Form
+                document.getElementById('loginForm').addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const username = document.getElementById('username').value;
+                    const password = document.getElementById('password').value;
+                    
+                    const submitBtn = e.target.querySelector('button[type="submit"]');
+                    const originalText = submitBtn.innerHTML;
+                    submitBtn.innerHTML = '<div class="loading"></div> Memproses...';
+                    submitBtn.disabled = true;
+                    
+                    await this.login(username, password);
+                    
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
+                });
+
+                // Logout
+                document.querySelector('.logout-btn').addEventListener('click', () => {
+                    if (confirm('Apakah Anda yakin ingin logout?')) {
+                        this.logout();
+                    }
+                });
+
+                // Presensi Buttons
+                document.getElementById('presensiMasukBtn').addEventListener('click', () => {
+                    this.startPresensi('masuk');
+                });
+
+                document.getElementById('presensiPulangBtn').addEventListener('click', () => {
+                    this.startPresensi('pulang');
+                });
+
+                // Capture Button
+                document.getElementById('captureBtn').addEventListener('click', () => {
+                    this.capturePresensi();
+                });
+
+                // Refresh Location
+                document.getElementById('refreshLocationBtn').addEventListener('click', () => {
+                    this.refreshLocation();
+                });
+
+                // Izin & WFH
+                document.getElementById('ajukanIzinBtn').addEventListener('click', () => {
+                    this.showModal('izinModal');
+                    document.getElementById('izinDate').value = new Date().toISOString().split('T')[0];
+                });
+
+                document.getElementById('ajukanWFHBtn').addEventListener('click', () => {
+                    this.showModal('wfhModal');
+                    document.getElementById('wfhDate').value = new Date().toISOString().split('T')[0];
+                });
+
+                // Forms
+                document.getElementById('izinForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const formData = {
+                        date: document.getElementById('izinDate').value,
+                        type: document.getElementById('izinType').value,
+                        detail: document.getElementById('izinDetail').value
+                    };
+                    this.ajukanIzin(formData);
+                });
+
+                document.getElementById('wfhForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const formData = {
+                        date: document.getElementById('wfhDate').value,
+                        reason: document.getElementById('wfhReason').value,
+                        detail: document.getElementById('wfhDetail').value
+                    };
+                    this.ajukanWFH(formData);
+                });
+
+                document.getElementById('profileForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const profileData = {
+                        nama: document.getElementById('profileNama').value,
+                        email: document.getElementById('profileEmail').value
+                    };
+                    
+                    const newPassword = document.getElementById('profilePassword').value;
+                    if (newPassword) {
+                        profileData.password = newPassword;
+                    }
+                    
+                    this.updateProfile(profileData);
+                });
+
+                // Admin Functions
+                document.getElementById('addUserBtn').addEventListener('click', () => {
+                    this.showModal('addUserModal');
+                });
+
+                document.getElementById('addUserForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const userData = {
+                        nama: document.getElementById('newUserName').value,
+                        username: document.getElementById('newUserUsername').value,
+                        email: document.getElementById('newUserEmail').value,
+                        password: document.getElementById('newUserPassword').value,
+                        status_pegawai: document.getElementById('newUserStatus').value,
+                        role: document.getElementById('newUserRole').value
+                    };
+                    this.addUser(userData);
+                });
+
+                document.getElementById('saveTimeSettingsBtn').addEventListener('click', () => {
+                    this.saveTimeSettings();
+                });
+
+                document.getElementById('addInsentifBtn').addEventListener('click', () => {
+                    this.addInsentifRule();
+                });
+
+                document.getElementById('addInsentifForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const formData = {
+                        time: document.getElementById('insentifTime').value,
+                        amount: document.getElementById('insentifAmount').value
+                    };
+                    this.saveInsentifRule(formData);
+                });
+
+                document.getElementById('addSpecialScheduleBtn').addEventListener('click', () => {
+                    this.addSpecialSchedule();
+                });
+
+                document.getElementById('addSpecialScheduleForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const checkedDays = Array.from(document.querySelectorAll('input[name="specialScheduleDays"]:checked'))
+                        .map(checkbox => checkbox.value);
+                    
+                    const formData = {
+                        userId: document.getElementById('specialScheduleUser').value,
+                        masuk: document.getElementById('specialScheduleMasuk').value,
+                        pulang: document.getElementById('specialSchedulePulang').value,
+                        days: checkedDays
+                    };
+                    this.saveSpecialSchedule(formData);
+                });
+
+                document.getElementById('exportXLSXBtn').addEventListener('click', () => {
+                    this.generateRekapXLSX();
+                });
+
+                // Modal Close Buttons
+                document.getElementById('closePresensiModal').addEventListener('click', () => {
+                    this.closeModal('presensiModal');
+                });
+
+                document.getElementById('closeIzinModal').addEventListener('click', () => {
+                    this.closeModal('izinModal');
+                });
+
+                document.getElementById('closeWfhModal').addEventListener('click', () => {
+                    this.closeModal('wfhModal');
+                });
+
+                document.getElementById('closeAddUserModal').addEventListener('click', () => {
+                    this.closeModal('addUserModal');
+                });
+
+                document.getElementById('closeAddInsentifModal').addEventListener('click', () => {
+                    this.closeModal('addInsentifModal');
+                });
+
+                document.getElementById('closeAddSpecialScheduleModal').addEventListener('click', () => {
+                    this.closeModal('addSpecialScheduleModal');
+                });
+
+                // Navigation
+                document.querySelectorAll('.nav-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        const targetTab = item.getAttribute('data-tab');
+                        
+                        document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+                        item.classList.add('active');
+                        
+                        document.querySelectorAll('.tab-content').forEach(content => {
+                            content.classList.remove('active');
+                            if (content.id === targetTab) {
+                                content.classList.add('active');
+                            }
+                        });
+
+                        if (targetTab === 'history') {
+                            this.updateHistoryList();
+                        } else if (targetTab === 'admin' && this.currentUser.role === 'admin') {
+                            this.loadAdminData();
+                        }
+                    });
+                });
+
+                // Filter History
+                document.getElementById('filterHistoryBtn').addEventListener('click', () => {
+                    this.updateHistoryList();
+                });
+
+                // Filter Rekap
+                document.getElementById('rekapMonth').addEventListener('change', () => {
+                    this.loadRekapTable();
+                });
+                document.getElementById('rekapYear').addEventListener('change', () => {
+                    this.loadRekapTable();
+                });
+            }
+        }
+
+        // Initialize application
+        const app = new SIPDAApp();
+
+        // Close modal when clicking outside
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('modal')) {
+                const modalId = e.target.id;
+                app.closeModal(modalId);
+            }
+        });
+
+        // Handle page refresh
+        window.addEventListener('beforeunload', () => {
+            app.camera.stopCamera();
+        });
+    </script>
+</body>
+</html>

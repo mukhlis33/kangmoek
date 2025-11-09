@@ -1,0 +1,294 @@
+<!doctype html>
+
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Photo-Match Minimal — Demo</title>
+  <style>
+    html,body{height:100%;margin:0;font-family:system-ui,Segoe UI,Roboto}
+    #app{display:flex;height:100%}
+    #left{width:420px;border-right:1px solid #ddd;padding:12px;box-sizing:border-box}
+    #canvasWrap{position:relative;background:#111;margin-top:8px}
+    #drawCanvas{position:absolute;left:0;top:0;z-index:5}
+    #imgPreview{display:block;max-width:400px;max-height:300px}
+    #scene{flex:1;display:block}
+    button,input{margin:6px 4px}
+    .lineItem{font-size:13px;margin:6px 0}
+    .hint{font-size:13px;color:#555}
+  </style>
+</head>
+<body>
+<div id="app">
+  <div id="left">
+    <h3>Photo-Match Minimal (demo)</h3>
+    <div>
+      <label>Upload foto:<input id="file" type="file" accept="image/*"></label>
+    </div>
+    <div class="hint">Cara: klik sekali untuk mulai garis, klik lagi untuk akhiri. Buat <strong>4 garis</strong> (2 untuk X, 2 untuk Y).</div>
+    <div id="canvasWrap">
+      <img id="img" src="" style="display:none;max-width:400px;max-height:300px" crossorigin="anonymous">
+      <canvas id="drawCanvas"></canvas>
+    </div>
+    <div style="margin-top:8px">
+      <button id="compute">Hitung Vanishing & Set Camera</button>
+      <button id="resetLines">Reset Garis</button>
+      <div class="hint">Vanishing points akan ditampilkan di sebelah.</div>
+      <div id="vps"></div>
+    </div>
+    <hr/>
+    <div>
+      <div class="hint">Preview garis:</div>
+      <div id="linesList"></div>
+    </div>
+  </div>
+  <div id="scene"></div>
+</div><!-- three.js CDN --><script src="https://cdn.jsdelivr.net/npm/three@0.154.0/build/three.min.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.154.0/examples/js/controls/OrbitControls.js"></script><script>
+// ---------- Utilities: line intersection in image coords ----------
+function lineFromPts(p1,p2){
+  // returns homogeneous line ax+by+c=0 as [a,b,c]
+  const a = p1.y - p2.y;
+  const b = p2.x - p1.x;
+  const c = p1.x*p2.y - p2.x*p1.y;
+  return [a,b,c];
+}
+function intersectLines(l1,l2){
+  const [a1,b1,c1]=l1;
+  const [a2,b2,c2]=l2;
+  const x = b1*c2 - c1*b2;
+  const y = c1*a2 - a1*c2;
+  const z = a1*b2 - b1*a2;
+  if(Math.abs(z) < 1e-9) return null;
+  return {x: x/z, y: y/z};
+}
+
+// ---------- DOM & drawing UI ----------
+const fileInput = document.getElementById('file');
+const img = document.getElementById('img');
+const drawCanvas = document.getElementById('drawCanvas');
+const canvasWrap = document.getElementById('canvasWrap');
+const ctx = drawCanvas.getContext('2d');
+const linesList = document.getElementById('linesList');
+const vpsDiv = document.getElementById('vps');
+
+let lines = []; // each {p1:{x,y}, p2:{x,y}, id}
+let drawing = null; // {x,y}
+
+fileInput.addEventListener('change', e=>{
+  const f = e.target.files[0];
+  if(!f) return;
+  const url = URL.createObjectURL(f);
+  img.onload = ()=>{
+    setupCanvasForImage();
+    drawAll();
+    initThreeSceneWithImage();
+  }
+  img.src = url;
+  img.style.display = 'block';
+});
+
+function setupCanvasForImage(){
+  drawCanvas.width = img.naturalWidth;
+  drawCanvas.height = img.naturalHeight;
+  drawCanvas.style.width = Math.min(img.naturalWidth,400) + 'px';
+  drawCanvas.style.height = Math.min(img.naturalHeight,300) + 'px';
+  canvasWrap.style.width = drawCanvas.style.width;
+  canvasWrap.style.height = drawCanvas.style.height;
+  // scale drawing to fit preview size but keep logical px coords = image px
+}
+
+canvasWrap.addEventListener('click', e=>{
+  if(!img.src) return;
+  const rect = drawCanvas.getBoundingClientRect();
+  // map to image pixel coords
+  const scaleX = img.naturalWidth / rect.width;
+  const scaleY = img.naturalHeight / rect.height;
+  const x = (e.clientX - rect.left) * scaleX;
+  const y = (e.clientY - rect.top) * scaleY;
+  if(!drawing){ drawing = {x,y}; }
+  else {
+    lines.push({p1:{x:drawing.x,y:drawing.y}, p2:{x,y}, id:lines.length+1});
+    drawing = null;
+    refreshLinesList();
+    drawAll();
+  }
+});
+
+function refreshLinesList(){
+  linesList.innerHTML = '';
+  lines.forEach((L,i)=>{
+    const el = document.createElement('div'); el.className='lineItem';
+    el.textContent = `Line ${i+1}: (${Math.round(L.p1.x)},${Math.round(L.p1.y)}) → (${Math.round(L.p2.x)},${Math.round(L.p2.y)})`;
+    linesList.appendChild(el);
+  });
+}
+
+function drawAll(){
+  if(!img.src) return;
+  ctx.clearRect(0,0,drawCanvas.width,drawCanvas.height);
+  // draw semi-transparent overlay to indicate image area
+  ctx.fillStyle='rgba(0,0,0,0)'; ctx.fillRect(0,0,drawCanvas.width,drawCanvas.height);
+  // draw existing lines
+  ctx.lineWidth = 3;
+  lines.forEach((L,i)=>{
+    ctx.strokeStyle = (i<2? 'rgba(255,0,0,0.9)':'rgba(0,180,0,0.9)');
+    ctx.beginPath(); ctx.moveTo(L.p1.x,L.p1.y); ctx.lineTo(L.p2.x,L.p2.y); ctx.stroke();
+  });
+  // if drawing in-progress: draw temp dot
+  if(drawing){ ctx.fillStyle='yellow'; ctx.beginPath(); ctx.arc(drawing.x,drawing.y,6,0,Math.PI*2); ctx.fill(); }
+}
+
+// ---------- Compute vanishing points & set camera ----------
+const computeBtn = document.getElementById('compute');
+const resetBtn = document.getElementById('resetLines');
+computeBtn.addEventListener('click', ()=>{
+  if(lines.length < 4){ alert('Buat minimal 4 garis (2 untuk X, 2 untuk Y).'); return; }
+  // treat first two lines as X-direction, next two as Y-direction
+  const l1 = lineFromPts(lines[0].p1, lines[0].p2);
+  const l2 = lineFromPts(lines[1].p1, lines[1].p2);
+  const l3 = lineFromPts(lines[2].p1, lines[2].p2);
+  const l4 = lineFromPts(lines[3].p1, lines[3].p2);
+  const vpX = intersectLines(l1,l2);
+  const vpY = intersectLines(l3,l4);
+  if(!vpX || !vpY){ alert('Garis sepertinya sejajar (no intersection). Coba lagi.'); return; }
+  showVanishingPoints(vpX,vpY);
+  // compute approximate camera orientation and set three.js camera
+  setCameraFromVanishing(vpX,vpY);
+});
+resetBtn.addEventListener('click', ()=>{ lines=[]; drawing=null; refreshLinesList(); drawAll(); vpsDiv.innerHTML=''; });
+
+function showVanishingPoints(vx,vy){
+  vpsDiv.innerHTML = `<div>VP X: (${vx.x.toFixed(1)}, ${vx.y.toFixed(1)})</div><div>VP Y: (${vy.x.toFixed(1)}, ${vy.y.toFixed(1)})</div>`;
+}
+
+// ---------- three.js scene ----------
+let renderer, scene, camera, controls, imgTexture, bgMesh;
+function initThree(){
+  const container = document.getElementById('scene');
+  renderer = new THREE.WebGLRenderer({antialias:true});
+  renderer.setSize(container.clientWidth, container.clientHeight);
+  renderer.setPixelRatio(window.devicePixelRatio);
+  container.innerHTML=''; container.appendChild(renderer.domElement);
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(50, container.clientWidth/container.clientHeight, 0.1, 20000);
+  camera.position.set(0,0,1000);
+  controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.target.set(0,0,0);
+
+  // grid & axes helper
+  const axes = new THREE.AxesHelper(200);
+  scene.add(axes);
+
+  // ambient
+  scene.add(new THREE.AmbientLight(0xffffff,0.8));
+  const dir = new THREE.DirectionalLight(0xffffff,0.6); dir.position.set(200,300,400); scene.add(dir);
+
+  animate();
+  window.addEventListener('resize', ()=>{ const w=container.clientWidth,h=container.clientHeight; camera.aspect=w/h; camera.updateProjectionMatrix(); renderer.setSize(w,h); });
+}
+
+function initThreeSceneWithImage(){
+  if(!renderer) initThree();
+  // remove old bg if exists
+  if(bgMesh) scene.remove(bgMesh);
+  // create plane with image as texture
+  imgTexture = new THREE.Texture(img);
+  imgTexture.needsUpdate = true;
+  const aspect = img.naturalWidth / img.naturalHeight;
+  const height = 800; // arbitrary world unit
+  const width = height * aspect;
+  const geo = new THREE.PlaneGeometry(width, height);
+  const mat = new THREE.MeshBasicMaterial({map: imgTexture, side:THREE.DoubleSide});
+  bgMesh = new THREE.Mesh(geo, mat);
+  bgMesh.position.set(0,0,0);
+  scene.add(bgMesh);
+  // reposition camera to look at plane center
+  camera.position.set(0,0,1000);
+  controls.target.set(0,0,0);
+}
+
+function animate(){
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene,camera);
+}
+
+// convert image pixel coords to 'image plane' world coords used in our simple mapping
+function imagePixelToImagePlane(p){
+  // map pixel coords (0..w,0..h) -> plane coords (-w/2..w/2, h/2..-h/2)
+  const w = img.naturalWidth, h = img.naturalHeight;
+  const aspect = w/h; const planeH = 800; const planeW = planeH * aspect;
+  const x = (p.x / w) * planeW - planeW/2;
+  const y = (1 - p.y / h) * planeH - planeH/2; // flip Y
+  return new THREE.Vector3(x,y,0);
+}
+
+function setCameraFromVanishing(vpX_img, vpY_img){
+  // Heuristic approach (approximate):
+  // 1) choose focal length = image diagonal in world units
+  // 2) compute direction vectors in camera space for each VP: [vx-cx, vy-cy, f]
+  // 3) create orthonormal basis from those two vectors -> use as camera rotation
+
+  const w = img.naturalWidth, h = img.naturalHeight;
+  const cx = w/2, cy = h/2;
+  // choose focal (in px) --- arbitrary heuristic: use image diagonal
+  const fpx = Math.sqrt(w*w + h*h);
+
+  // vectors in camera coordinates (camera looks down +Z in this approximation)
+  const vx = new THREE.Vector3(vpX_img.x - cx, -(vpX_img.y - cy), fpx).normalize();
+  const vy = new THREE.Vector3(vpY_img.x - cx, -(vpY_img.y - cy), fpx).normalize();
+
+  // orthonormalize
+  const ex = vx.clone().normalize();
+  let ez = new THREE.Vector3().crossVectors(ex, vy).normalize();
+  const ey = new THREE.Vector3().crossVectors(ez, ex).normalize();
+
+  // Build rotation matrix whose columns are ex,ey,ez (camera -> world)
+  const m = new THREE.Matrix4();
+  m.makeBasis(ex, ey, ez); // columns = basis
+
+  // We need camera.quaternion that transforms world->camera. The matrix m currently maps camera basis -> ???
+  // After some experimenting: set camera.quaternion from matrix, then invert
+  const q = new THREE.Quaternion().setFromRotationMatrix(m);
+  // invert quaternion to convert to camera rotation
+  q.inverse();
+  camera.quaternion.copy(q);
+
+  // set camera position somewhat back along camera local Z so the plane fits
+  // estimate distance such that plane (~height 800) fits into view
+  const planeH = 800;
+  const fov = camera.fov * Math.PI/180;
+  const dist = (planeH/2) / Math.tan(fov/2);
+  // move camera along its local z (which is camera.getWorldDirection)
+  const dir = new THREE.Vector3(); camera.getWorldDirection(dir); // points from camera to -Z?
+  // we want camera to be in front of plane, so position = origin - dir * dist
+  camera.position.copy(new THREE.Vector3(0,0,0)).sub(dir.multiplyScalar(dist));
+  controls.update();
+
+  // Visual helpers: draw VP points projected to plane
+  // compute where vanishing points intersect the background plane z=0 by casting ray from camera through image plane
+  placeVPMarker(vpX_img, 0xff0000);
+  placeVPMarker(vpY_img, 0x00aa00);
+}
+
+function placeVPMarker(vp_img, color){
+  // convert pixel to NDC
+  const w = img.naturalWidth, h = img.naturalHeight;
+  const ndcX = (vp_img.x / w) * 2 - 1;
+  const ndcY = -((vp_img.y / h) * 2 - 1);
+  // unproject a far point
+  const vec = new THREE.Vector3(ndcX, ndcY, 0.5).unproject(camera);
+  const dir = vec.clone().sub(camera.position).normalize();
+  // intersect with z=0 plane
+  const t = - camera.position.z / dir.z;
+  const pos = camera.position.clone().add(dir.multiplyScalar(t));
+  const g = new THREE.SphereGeometry(8,12,8);
+  const m = new THREE.MeshBasicMaterial({color});
+  const s = new THREE.Mesh(g,m); s.position.copy(pos); scene.add(s);
+}
+
+// ---------- init ----------
+initThree();
+
+</script></body>
+</html>
