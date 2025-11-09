@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>3D OBJ Preview</title>
-  <!-- Tailwind CDN -->
+  <!-- Tailwind CDN untuk demo -->
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     body, html {
@@ -23,6 +23,7 @@
   <div id="container" class="w-full h-full max-w-7xl max-h-[90vh] rounded-lg shadow-lg bg-white"></div>
 
   <script type="module">
+    // Import Three.js & loader via CDN ES Modules
     import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js';
     import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.161.0/examples/jsm/controls/OrbitControls.js';
     import { OBJLoader } from 'https://cdn.jsdelivr.net/npm/three@0.161.0/examples/jsm/loaders/OBJLoader.js';
@@ -43,11 +44,15 @@
     renderer.setSize(container.clientWidth, container.clientHeight);
     container.appendChild(renderer.domElement);
 
-    // Light
-    const dirLight = new THREE.DirectionalLight(0xffffff, 1);
-    dirLight.position.set(10, 10, 10);
-    scene.add(dirLight);
-    scene.add(new THREE.AmbientLight(0x404040, 1.5));
+    // Lights
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+    scene.add(ambientLight);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    directionalLight.position.set(10, 10, 10);
+    scene.add(directionalLight);
+    const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.5);
+    directionalLight2.position.set(-10, 5, -10);
+    scene.add(directionalLight2);
 
     // Controls
     const controls = new OrbitControls(camera, renderer.domElement);
@@ -64,9 +69,23 @@
       objLoader.setMaterials(materials);
       objLoader.setPath('models/');
       objLoader.load('Bangunan1.obj', (object) => {
+
+        // Optional: scaling jika objek terlalu besar/kecil
+        object.scale.set(0.1, 0.1, 0.1);
+        object.position.set(0, 0, 0);
+
+        // Jika material gagal, beri default
+        object.traverse(function(child){
+          if(child.isMesh && !child.material) {
+            child.material = new THREE.MeshStandardMaterial({ color: 0xaaaaaa });
+          }
+        });
+
         scene.add(object);
-        object.position.set(0,0,0);
+      }, undefined, (error) => {
+        console.error('Error loading OBJ:', error);
       });
+
     }, undefined, (error) => {
       console.error('Error loading MTL:', error);
     });
@@ -86,5 +105,6 @@
       renderer.setSize(container.clientWidth, container.clientHeight);
     });
   </script>
+
 </body>
 </html>
