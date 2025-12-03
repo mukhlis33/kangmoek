@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Binda - Guru & Karyawan</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary-blue: #0d6efd; --bg-light: #f4f6f9; --text-grey: #6c757d; --sidebar-width: 240px; --header-height: 65px; }
+        body { font-family: 'Poppins', sans-serif; background-color: var(--bg-light); font-size: 0.8rem; color: #333; overflow: hidden; margin: 0; height: 100vh; }
+        
+        /* Layout Common */
+        .top-header { background: white; height: var(--header-height); display: flex; align-items: center; justify-content: space-between; padding: 0 25px; box-shadow: 0 1px 5px rgba(0,0,0,0.05); position: fixed; top: 0; left: 0; right: 0; z-index: 1000; }
+        .sidebar { width: var(--sidebar-width); background: white; position: fixed; top: var(--header-height); bottom: 0; left: 0; padding-top: 20px; border-right: 1px solid #e9ecef; z-index: 900; overflow-y: auto; }
+        .main-wrapper { margin-left: var(--sidebar-width); margin-top: var(--header-height); height: calc(100vh - var(--header-height)); display: flex; flex-direction: column; }
+        .breadcrumb-container { padding: 10px 30px; background: var(--bg-light); font-size: 0.85rem; font-weight: 500; color: var(--text-grey); flex-shrink: 0; }
+        .breadcrumb-container span { color: var(--primary-blue); font-weight: 600; }
+        .content-container { padding: 0 30px 20px 30px; flex-grow: 1; height: 100%; overflow: hidden; }
+        
+        /* Nav & Search */
+        .nav-link { color: var(--text-grey); padding: 12px 25px; display: flex; align-items: center; gap: 15px; text-decoration: none; font-weight: 500; }
+        .nav-link:hover { color: var(--primary-blue); background: #f8f9fa; }
+        .nav-link.active-menu { background: var(--primary-blue); color: white; border-radius: 0 50px 50px 0; margin-right: 15px; }
+        .header-search { display: flex; align-items: center; gap: 10px; background: var(--bg-light); padding: 6px 15px; border-radius: 20px; border: 1px solid #e9ecef; }
+        .header-search input { border: none; background: transparent; outline: none; font-size: 0.85rem; color: var(--text-grey); width: 180px; }
+
+        /* Guru Specific Layout */
+        .guru-layout { display: flex; gap: 20px; height: 100%; position: relative; }
+        .guru-grid { flex-grow: 1; background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); border: 1px solid #e9ecef; display: flex; flex-direction: column; transition: 0.3s; }
+        
+        /* Right Panel (No Expand Button) */
+        .guru-right-panel { 
+            width: 320px; background: white; border-radius: 10px; padding: 20px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02); height: fit-content; 
+            border: 1px solid #e9ecef; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+            flex-shrink: 0; display: flex; flex-direction: column;
+            transform: translateX(0); opacity: 1;
+            /* Default Hidden off-canvas style */
+        }
+        .guru-right-panel.hidden { width: 0; padding: 0; margin: 0; border: none; opacity: 0; transform: translateX(20px); overflow: hidden; }
+
+        /* Toolbar */
+        .toolbar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+        .form-select-filter { font-size: 0.8rem; padding: 5px 10px; border-radius: 6px; border-color: #dee2e6; font-weight: 500; color: #555; cursor: pointer; }
+        .form-select-filter:focus { border-color: var(--primary-blue); box-shadow: 0 0 0 2px rgba(13,110,253,0.1); }
+        .input-search-filter { font-size: 0.8rem; padding: 5px 12px; border-radius: 20px; border: 1px solid #dee2e6; width: 250px; outline: none; }
+        .input-search-filter:focus { border-color: var(--primary-blue); }
+
+        /* Buttons & Table */
+        .btn-pro { padding: 5px 12px; font-size: 0.75rem; border-radius: 6px; border: 1px solid #eee; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; text-decoration: none; color: #555; background: white; font-weight: 500; transition: 0.2s; }
+        .btn-pro:hover { background: #f8f9fa; border-color: #ccc; }
+        .btn-pro-primary { background: var(--primary-blue); color: white; border-color: var(--primary-blue); }
+        .btn-pro-primary:hover { background: #0b5ed7; color: white; border-color: #0b5ed7; }
+        
+        .table-responsive { flex-grow: 1; overflow: auto; }
+        .table-custom { width: 100%; border-collapse: separate; border-spacing: 0 2px; font-size: 0.78rem; color: #444; }
+        .table-custom thead th { background: #f8f9fa; color: var(--primary-blue); padding: 10px 12px; border-bottom: 2px solid #e9ecef; font-weight: 600; white-space: nowrap; position: sticky; top: 0; }
+        .table-custom tbody tr { background: white; transition: 0.1s; cursor: pointer; }
+        .table-custom tbody tr:hover { background: #f1f7ff; transform: scale(1.002); box-shadow: 0 2px 5px rgba(0,0,0,0.05); z-index: 1; position: relative;}
+        .table-custom td { padding: 8px 12px; vertical-align: middle; border-bottom: 1px solid #f0f0f0; }
+        .table-custom tr.selected { background: #eef4ff !important; border-left: 3px solid var(--primary-blue); }
+        .table-custom tr.selected td { color: var(--primary-blue); font-weight: 500; }
+
+        /* Card View */
+        .grid-view-container { display: none; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; padding: 5px; overflow-y: auto; flex-grow: 1; }
+        .guru-card { background: white; border: 1px solid #e9ecef; border-radius: 10px; padding: 15px; text-align: center; transition: 0.2s; cursor: pointer; position: relative; }
+        .guru-card:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.05); border-color: var(--primary-blue); }
+        .guru-card.selected { border-color: var(--primary-blue); background: #f8fbff; }
+        .guru-card img { width: 70px; height: 70px; border-radius: 50%; object-fit: cover; margin-bottom: 10px; border: 3px solid #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .card-check { position: absolute; top: 10px; left: 10px; }
+
+        /* Modal Styles */
+        .modal-edit-nav .nav-link { color: #555; font-weight: 500; font-size: 0.85rem; padding: 10px 15px; text-align: left; justify-content: flex-start; }
+        .modal-edit-nav .nav-link.active { background-color: var(--primary-blue); color: white; }
+        .form-section-title { font-size: 0.9rem; font-weight: 700; color: var(--primary-blue); border-bottom: 2px solid #eee; padding-bottom: 5px; margin-bottom: 15px; }
+        .form-group-label { font-size: 0.75rem; font-weight: 600; color: #444; margin-bottom: 3px; }
+        .form-control-custom { font-size: 0.8rem; padding: 6px 10px; border-radius: 4px; border: 1px solid #ddd; }
+    </style>
+</head>
+<body>
+    <!-- HEADER -->
+    <header class="top-header">
+        <div class="d-flex align-items-center gap-4">
+            <img src="img/logo_app.png" height="32">
+            <div class="header-search"><i class="fas fa-search text-muted"></i><input type="text" placeholder="Cari Guru..."></div>
+        </div>
+        <div class="text-center">
+            <div style="font-weight:600;" id="jamHeader">00.00.00</div>
+            <div style="font-size:0.75rem; color:var(--primary-blue);" id="tglHeader">...</div>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <div class="text-end lh-1"><h6 class="m-0 fw-bold">SMK DARUL ABROR</h6><span style="font-size:0.7rem;" class="text-muted">admin</span></div>
+            <img src="img/logo_sekolah.png" height="40">
+        </div>
+    </header>
+
+    <!-- SIDEBAR -->
+    <nav class="sidebar">
+        <div class="nav flex-column">
+            <a href="beranda.html" class="nav-link"><i class="fas fa-th-large" style="width:20px;text-align:center;"></i> Beranda</a>
+            <a href="siswa.html" class="nav-link"><i class="fas fa-user-graduate" style="width:20px;text-align:center;"></i> Siswa</a>
+            <a href="kaldik.html" class="nav-link"><i class="fas fa-calendar-alt" style="width:20px;text-align:center;"></i> Kaldik</a>
+            <a href="guru.html" class="nav-link active-menu"><i class="fas fa-chalkboard-teacher" style="width:20px;text-align:center;"></i> Guru</a>
+            <a href="pengaturan.html" class="nav-link"><i class="fas fa-cog" style="width:20px;text-align:center;"></i> Pengaturan</a>
+            <a href="#" class="nav-link text-danger mt-4"><i class="fas fa-power-off" style="width:20px;text-align:center;"></i> Keluar</a>
+        </div>
+    </nav>
+
+    <!-- CONTENT -->
+    <div class="main-wrapper">
+        <div class="breadcrumb-container">Buku Induk / <span>Guru & Karyawan</span></div>
+        <div class="content-container">
+            <div class="guru-layout">
+                
+                <!-- GRID DATA GURU -->
+                <div class="guru-grid">
+                    
+                    <!-- Toolbar Atas (Filter Utama) -->
+                    <div class="toolbar-row justify-content-between">
+                        <div class="d-flex gap-2">
+                            <select id="filterJabatan" class="form-select-filter" style="width: 180px;" onchange="applyFilters()">
+                                <option value="">Semua Jabatan</option>
+                                <option value="Guru Mapel">Guru Mapel</option>
+                                <option value="Wali Kelas">Wali Kelas</option>
+                                <option value="Kepala Sekolah">Kepala Sekolah</option>
+                                <option value="Staff TU">Staff TU</option>
+                            </select>
+                            <select id="filterStatus" class="form-select-filter" style="width: 150px;" onchange="applyFilters()">
+                                <option value="">Semua Status</option>
+                                <option value="PNS">PNS</option>
+                                <option value="GTY">GTY</option>
+                                <option value="GTT">GTT</option>
+                                <option value="Honorer">Honorer</option>
+                            </select>
+                        </div>
+                        <input type="text" id="searchInput" class="input-search-filter" placeholder="Cari NIP atau Nama..." oninput="applyFilters()">
+                    </div>
+
+                    <!-- Toolbar Bawah (Actions) -->
+                    <div class="toolbar-row justify-content-between">
+                        <div class="d-flex gap-2 align-items-center">
+                            <!-- View Switcher -->
+                            <div class="dropdown">
+                                <button class="btn btn-light btn-sm border dropdown-toggle d-flex align-items-center gap-2" data-bs-toggle="dropdown" id="viewBtn">
+                                    <i class="fas fa-list-ul text-primary"></i> Daftar
+                                </button>
+                                <ul class="dropdown-menu shadow-sm border-0">
+                                    <li><a class="dropdown-item small" href="#" onclick="switchView('table')"><i class="fas fa-list me-2"></i> Daftar</a></li>
+                                    <li><a class="dropdown-item small" href="#" onclick="switchView('grid')"><i class="fas fa-th-large me-2"></i> Kartu</a></li>
+                                </ul>
+                            </div>
+                            
+                            <!-- Sort -->
+                            <div class="dropdown">
+                                <button class="btn btn-light btn-sm border dropdown-toggle d-flex align-items-center gap-2" data-bs-toggle="dropdown">
+                                    <i class="fas fa-sort-amount-down text-muted"></i> Urutkan
+                                </button>
+                                <div class="dropdown-menu shadow border-0 p-3" style="min-width: 200px;">
+                                    <span class="d-block small fw-bold text-muted mb-2">Berdasarkan</span>
+                                    <div class="form-check"><input class="form-check-input" type="radio" name="sortField" value="nama" checked onchange="applyFilters()"> <label class="form-check-label small">Nama</label></div>
+                                    <div class="form-check"><input class="form-check-input" type="radio" name="sortField" value="nip" onchange="applyFilters()"> <label class="form-check-label small">NIP/NUPTK</label></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex gap-2">
+                            <button class="btn-pro" onclick="window.print()"><i class="fas fa-print"></i> Cetak</button>
+                            <button class="btn-pro text-success"><i class="fas fa-file-excel"></i> Ekspor</button>
+                            <button class="btn-pro text-danger" onclick="deleteSelected()"><i class="fas fa-trash-alt"></i> Hapus</button>
+                            <button class="btn-pro btn-pro-primary" onclick="openEditModal(null)"><i class="fas fa-plus"></i> Tambah</button>
+                        </div>
+                    </div>
+
+                    <!-- VIEW: TABEL -->
+                    <div id="tableView" class="table-responsive">
+                        <table class="table-custom">
+                            <thead>
+                                <tr>
+                                    <th width="1%"><input type="checkbox" id="checkAll" onclick="toggleCheckAll()"></th>
+                                    <th>NIP/NUPTK</th><th>Nama Lengkap</th><th>L/P</th><th>Jabatan</th><th>Tugas Tambahan</th><th>Status</th><th>No HP</th>
+                                    <th class="text-end">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-body">
+                                <!-- Data populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- VIEW: KARTU (GRID) -->
+                    <div id="gridView" class="grid-view-container">
+                        <!-- Populated by JS -->
+                    </div>
+
+                    <!-- FOOTER PAGINATION -->
+                    <div class="d-flex justify-content-between mt-auto pt-3 border-top small text-muted align-items-center">
+                        <div class="d-flex align-items-center gap-2">
+                            <span>Total: <b class="text-primary" id="ft-total">0</b> Guru</span>
+                            <span class="mx-2 text-muted">|</span>
+                            <div class="d-flex align-items-center gap-1">
+                                <span>Tampilkan</span>
+                                <select id="itemsPerPageSelect" class="form-select form-select-sm py-0 px-2" style="width:auto; font-size:0.75rem;" onchange="changeItemsPerPage()">
+                                    <option value="15">15</option>
+                                    <option value="50">50</option>
+                                    <option value="75">75</option>
+                                    <option value="100">100</option>
+                                    <option value="all">Semua</option>
+                                </select>
+                                <span>baris</span>
+                            </div>
+                        </div>
+                        <div class="btn-group shadow-sm">
+                            <button class="btn btn-sm btn-outline-secondary border px-3" onclick="prevPage()">&lt;</button>
+                            <button class="btn btn-sm btn-primary border px-3" id="pageIndicator">1</button>
+                            <button class="btn btn-sm btn-outline-secondary border px-3" onclick="nextPage()">&gt;</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PANEL KANAN (PREVIEW) -->
+                <div class="guru-right-panel hidden" id="rightPanel">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <button class="btn btn-sm btn-light border rounded-circle" style="width:30px; height:30px;" onclick="closePanel()" title="Tutup Panel"><i class="fas fa-times"></i></button>
+                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary px-2" id="p_status">Aktif</span>
+                    </div>
+                    
+                    <div class="text-center mb-4">
+                        <div class="bg-light border rounded p-1 d-inline-block shadow-sm mb-3">
+                            <img id="p_foto" src="img/pasfoto_kosong.png" style="height:160px; width:120px; object-fit:cover; border-radius:4px;" onerror="this.src='img/pasfoto_kosong.png'">
+                        </div>
+                        <h6 class="fw-bold m-0" id="p_nama">...</h6>
+                        <span class="text-muted small" id="p_nip">...</span>
+                        <div class="mt-2"><span class="badge bg-secondary" id="p_jabatan">Guru</span></div>
+                    </div>
+
+                    <div class="flex-grow-1 overflow-auto">
+                        <h6 class="small fw-bold text-uppercase text-muted border-bottom pb-1 mb-2">Detail Info</h6>
+                        <div class="d-flex justify-content-between small mb-2"><span class="text-muted">Tugas</span><span class="fw-bold text-dark" id="p_tugas">-</span></div>
+                        <div class="d-flex justify-content-between small mb-2"><span class="text-muted">JK</span><span class="fw-bold text-dark" id="p_jk">-</span></div>
+                        <div class="d-flex justify-content-between small mb-2"><span class="text-muted">No HP</span><span class="fw-bold text-dark" id="p_hp">-</span></div>
+                        <div class="d-flex justify-content-between small mb-2"><span class="text-muted">Alamat</span><span class="fw-bold text-dark text-end" style="max-width:150px;" id="p_alamat">-</span></div>
+                    </div>
+
+                    <button class="btn btn-outline-primary btn-sm w-100 mt-3" onclick="openEditFromPanel()"><i class="far fa-edit me-1"></i> Edit Data Lengkap</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL EDIT GURU -->
+    <div class="modal fade" id="modalEditGuru" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold text-primary" id="modalTitle">Data Guru & Karyawan</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body bg-light">
+                    <div class="row h-100">
+                        <!-- Sidebar Modal -->
+                        <div class="col-md-3">
+                            <div class="modal-edit-nav nav flex-column nav-pills" id="v-pills-tab">
+                                <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tab-a">A. Foto Profil</button>
+                                <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-b">B. Identitas Diri</button>
+                                <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-c">C. Kepegawaian</button>
+                                <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-d">D. Kontak & Alamat</button>
+                                <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-e">E. Pendidikan</button>
+                            </div>
+                        </div>
+                        <!-- Content Modal -->
+                        <div class="col-md-9">
+                            <form id="formGuru">
+                                <input type="hidden" id="editId">
+                                <div class="tab-content bg-white p-4 rounded border h-100 overflow-auto">
+                                    
+                                    <!-- A. Foto -->
+                                    <div class="tab-pane fade show active" id="tab-a">
+                                        <div class="form-section-title">A. Foto Profil</div>
+                                        <div class="text-center">
+                                            <div class="border p-2 bg-light mb-3 d-inline-block"><img src="img/pasfoto_kosong.png" style="height:180px;" id="previewFoto" onerror="this.src='img/pasfoto_kosong.png'"></div>
+                                            <br>
+                                            <label class="btn btn-sm btn-outline-primary">Upload Foto <input type="file" hidden></label>
+                                        </div>
+                                    </div>
+
+                                    <!-- B. Identitas -->
+                                    <div class="tab-pane fade" id="tab-b">
+                                        <div class="form-section-title">B. Identitas Diri</div>
+                                        <div class="row g-3">
+                                            <div class="col-md-6"><label class="form-group-label">Nama Lengkap (Tanpa Gelar)</label><input type="text" class="form-control form-control-custom" id="inNama"></div>
+                                            <div class="col-md-6"><label class="form-group-label">Gelar Akademik</label><input type="text" class="form-control form-control-custom" id="inGelar" placeholder="S.Pd, M.M"></div>
+                                            <div class="col-md-6"><label class="form-group-label">NIK</label><input type="text" class="form-control form-control-custom"></div>
+                                            <div class="col-md-6"><label class="form-group-label">Tempat Lahir</label><input type="text" class="form-control form-control-custom"></div>
+                                            <div class="col-md-6"><label class="form-group-label">Tanggal Lahir</label><input type="date" class="form-control form-control-custom"></div>
+                                            <div class="col-md-6"><label class="form-group-label">Jenis Kelamin</label><select class="form-select form-control-custom" id="inJK"><option value="L">Laki-Laki</option><option value="P">Perempuan</option></select></div>
+                                            <div class="col-md-6"><label class="form-group-label">Nama Ibu Kandung</label><input type="text" class="form-control form-control-custom"></div>
+                                        </div>
+                                    </div>
+
+                                    <!-- C. Kepegawaian -->
+                                    <div class="tab-pane fade" id="tab-c">
+                                        <div class="form-section-title">C. Data Kepegawaian</div>
+                                        <div class="row g-3">
+                                            <div class="col-md-6"><label class="form-group-label">NIP</label><input type="text" class="form-control form-control-custom" id="inNIP"></div>
+                                            <div class="col-md-6"><label class="form-group-label">NUPTK</label><input type="text" class="form-control form-control-custom" id="inNUPTK"></div>
+                                            <div class="col-md-6"><label class="form-group-label">Status Kepegawaian</label><select class="form-select form-control-custom" id="inStatus"><option>GTY</option><option>GTT</option><option>PNS</option><option>Honorer</option></select></div>
+                                            <div class="col-md-6"><label class="form-group-label">Jenis PTK (Jabatan)</label><select class="form-select form-control-custom" id="inJabatan"><option>Guru Mapel</option><option>Kepala Sekolah</option><option>Staff TU</option><option>Penjaga Sekolah</option></select></div>
+                                            <div class="col-md-6"><label class="form-group-label">Tugas Tambahan</label><input type="text" class="form-control form-control-custom" id="inTugas" placeholder="Cth: Wali Kelas X DKV 1"></div>
+                                            <div class="col-md-6"><label class="form-group-label">TMT Pengangkatan</label><input type="date" class="form-control form-control-custom"></div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Placeholder Tabs -->
+                                    <div class="tab-pane fade" id="tab-d"><div class="form-section-title">D. Kontak</div><div class="row g-3"><div class="col-md-6"><label class="form-group-label">No HP/WA</label><input type="text" class="form-control form-control-custom" id="inHP"></div><div class="col-md-6"><label class="form-group-label">Email</label><input type="email" class="form-control form-control-custom"></div><div class="col-12"><label class="form-group-label">Alamat Rumah</label><textarea class="form-control form-control-custom" rows="2" id="inAlamat"></textarea></div></div></div>
+                                    <div class="tab-pane fade" id="tab-e"><p class="text-center text-muted py-5">Form Riwayat Pendidikan...</p></div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary" onclick="saveData()">Simpan</button></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // --- DATA DUMMY GURU ---
+        let gurus = [
+            {id:1, nip:"198501012010011001", nuptk:"1234567890123456", nama:"Burhanudin", gelar:"S.Kom", jk:"L", jabatan:"Guru Mapel", tugas:"Wali Kelas X DKV 1", status:"PNS", hp:"08123456789", alamat:"Purbalingga"},
+            {id:2, nip:"-", nuptk:"9876543210987654", nama:"Siti Aminah", gelar:"S.Pd", jk:"P", jabatan:"Guru Mapel", tugas:"Wali Kelas XII DKV 1", status:"GTY", hp:"08567890123", alamat:"Bukateja"},
+            {id:3, nip:"199005052015021002", nuptk:"1122334455667788", nama:"Ahmad Zaky", gelar:"S.T", jk:"L", jabatan:"Guru Mapel", tugas:"Ka. Lab Komputer", status:"GTY", hp:"08111222333", alamat:"Purwokerto"},
+            {id:4, nip:"-", nuptk:"-", nama:"Dewi Sartika", gelar:"S.E", jk:"P", jabatan:"Staff TU", tugas:"Bendahara", status:"Honorer", hp:"08998877665", alamat:"Kemangkon"},
+            {id:5, nip:"197008171995031005", nuptk:"5566778899001122", nama:"Dr. H. Soedirman", gelar:"M.Pd", jk:"L", jabatan:"Kepala Sekolah", tugas:"-", status:"PNS", hp:"08123123123", alamat:"Banyumas"},
+            {id:6, nip:"-", nuptk:"-", nama:"Budi Raharjo", gelar:"-", jk:"L", jabatan:"Penjaga Sekolah", tugas:"Keamanan", status:"Honorer", hp:"087711223344", alamat:"Kutasari"}
+        ];
+
+        let filteredData = [];
+        let viewMode = 'table';
+        let currentPage = 1;
+        let itemsPerPage = 15; // Default value
+        let selectedId = null;
+
+        document.addEventListener("DOMContentLoaded", () => {
+            applyFilters();
+            updateClock();
+        });
+
+        // --- FILTER & RENDER ---
+        function applyFilters() {
+            const jab = document.getElementById('filterJabatan').value;
+            const sts = document.getElementById('filterStatus').value;
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            // Default sort by Nama
+            const sortField = 'nama'; 
+
+            filteredData = gurus.filter(g => {
+                const mJab = jab ? g.jabatan === jab : true;
+                const mSts = sts ? g.status === sts : true;
+                const mSearch = g.nama.toLowerCase().includes(search) || g.nip.includes(search) || g.nuptk.includes(search);
+                return mJab && mSts && mSearch;
+            });
+
+            // Sort
+            filteredData.sort((a, b) => {
+                let valA = a[sortField] || "";
+                let valB = b[sortField] || "";
+                return valA > valB ? 1 : -1;
+            });
+
+            currentPage = 1;
+            renderData();
+        }
+
+        function changeItemsPerPage() {
+            const val = document.getElementById('itemsPerPageSelect').value;
+            if (val === 'all') {
+                itemsPerPage = filteredData.length > 0 ? filteredData.length : 1;
+            } else {
+                itemsPerPage = parseInt(val);
+            }
+            currentPage = 1;
+            renderData();
+        }
+
+        function renderData() {
+            const start = (currentPage - 1) * itemsPerPage;
+            const end = itemsPerPage === filteredData.length ? filteredData.length : start + itemsPerPage;
+            const pageData = filteredData.slice(start, end);
+            
+            const tbody = document.getElementById('table-body');
+            const gridContainer = document.getElementById('gridView');
+            const tableContainer = document.getElementById('tableView');
+
+            tbody.innerHTML = '';
+            gridContainer.innerHTML = '';
+
+            if(viewMode === 'table') {
+                tableContainer.style.display = 'block';
+                gridContainer.style.display = 'none';
+                
+                pageData.forEach(g => {
+                    const tr = document.createElement('tr');
+                    tr.onclick = () => selectRow(tr, g);
+                    tr.innerHTML = `
+                        <td><input type="checkbox" class="row-check" value="${g.id}" onclick="event.stopPropagation()"></td>
+                        <td><div class="fw-bold">${g.nip}</div><div class="small text-muted">${g.nuptk}</div></td>
+                        <td class="fw-bold text-primary">${g.nama}, ${g.gelar}</td>
+                        <td>${g.jk}</td>
+                        <td>${g.jabatan}</td>
+                        <td>${g.tugas}</td>
+                        <td><span class="badge bg-light text-dark border">${g.status}</span></td>
+                        <td>${g.hp}</td>
+                        <td class="text-end">
+                            <i class="fas fa-info-circle text-info mx-1" onclick="selectRow(this.closest('tr'), ${JSON.stringify(g).replace(/"/g, '&quot;')})" title="Detail"></i>
+                            <i class="far fa-edit text-warning mx-1" title="Ubah" onclick="event.stopPropagation(); openEditModal(${g.id})"></i>
+                            <i class="fas fa-trash-alt text-danger mx-1" title="Hapus" onclick="event.stopPropagation(); deleteRow(${g.id})"></i>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } else {
+                tableContainer.style.display = 'none';
+                gridContainer.style.display = 'grid';
+                pageData.forEach(g => {
+                    const card = document.createElement('div');
+                    card.className = 'guru-card';
+                    card.onclick = () => selectCard(card, g);
+                    card.innerHTML = `
+                        <input type="checkbox" class="row-check card-check" value="${g.id}" onclick="event.stopPropagation()">
+                        <img src="img/pasfoto_kosong.png" onerror="this.src='img/pasfoto_kosong.png'">
+                        <div class="fw-bold text-primary mb-1">${g.nama}, ${g.gelar}</div>
+                        <div class="small text-muted mb-2">${g.jabatan}</div>
+                        <span class="badge bg-light text-dark border">${g.status}</span>
+                    `;
+                    gridContainer.appendChild(card);
+                });
+            }
+            
+            document.getElementById('ft-total').innerText = filteredData.length;
+            document.getElementById('pageIndicator').innerText = currentPage;
+        }
+
+        // --- INTERACTION ---
+        function switchView(mode) {
+            viewMode = mode;
+            document.getElementById('viewBtn').innerHTML = mode === 'table' ? '<i class="fas fa-list-ul text-primary"></i> Daftar' : '<i class="fas fa-th-large text-primary"></i> Kartu';
+            renderData();
+        }
+        function prevPage() { if(currentPage > 1) { currentPage--; renderData(); } }
+        function nextPage() { 
+            const maxPage = Math.ceil(filteredData.length / itemsPerPage);
+            if(currentPage < maxPage) { currentPage++; renderData(); } 
+        }
+        function toggleCheckAll() {
+            const master = document.getElementById('checkAll');
+            document.querySelectorAll('.row-check').forEach(cb => cb.checked = master.checked);
+        }
+
+        // --- PANEL & MODAL ---
+        function selectRow(el, data) {
+            document.querySelectorAll('tr').forEach(t=>t.classList.remove('selected'));
+            el.classList.add('selected');
+            showPanel(data);
+        }
+        function selectCard(el, data) {
+            document.querySelectorAll('.guru-card').forEach(c => c.classList.remove('selected'));
+            el.classList.add('selected');
+            showPanel(data);
+        }
+        function showPanel(data) {
+            selectedId = data.id;
+            const p = document.getElementById('rightPanel');
+            
+            if(p.classList.contains('hidden')) { p.classList.remove('hidden'); }
+            
+            document.getElementById('p_nama').innerText = data.nama + ', ' + data.gelar;
+            document.getElementById('p_nip').innerText = data.nip;
+            document.getElementById('p_jabatan').innerText = data.jabatan;
+            document.getElementById('p_tugas').innerText = data.tugas;
+            document.getElementById('p_jk').innerText = data.jk === 'L' ? 'Laki-Laki' : 'Perempuan';
+            document.getElementById('p_hp').innerText = data.hp;
+            document.getElementById('p_alamat').innerText = data.alamat;
+        }
+        function closePanel() {
+            const p = document.getElementById('rightPanel');
+            p.classList.add('hidden');
+        }
+        // No togglePanel function needed anymore since expand button is removed
+
+        function openEditModal(id) {
+            const modal = new bootstrap.Modal(document.getElementById('modalEditGuru'));
+            if(id) {
+                const g = gurus.find(x => x.id === id);
+                document.getElementById('modalTitle').innerText = "Ubah Data Guru";
+                document.getElementById('editId').value = g.id;
+                document.getElementById('inNama').value = g.nama;
+                document.getElementById('inGelar').value = g.gelar;
+                document.getElementById('inNIP').value = g.nip;
+                document.getElementById('inNUPTK').value = g.nuptk;
+                document.getElementById('inJK').value = g.jk;
+                document.getElementById('inJabatan').value = g.jabatan;
+                document.getElementById('inTugas').value = g.tugas;
+                document.getElementById('inStatus').value = g.status;
+                document.getElementById('inHP').value = g.hp;
+                document.getElementById('inAlamat').value = g.alamat;
+            } else {
+                document.getElementById('modalTitle').innerText = "Tambah Guru Baru";
+                document.getElementById('formGuru').reset();
+                document.getElementById('editId').value = '';
+            }
+            modal.show();
+        }
+        function openEditFromPanel() { if(selectedId) openEditModal(selectedId); }
+
+        function saveData() {
+            const id = document.getElementById('editId').value;
+            const newData = {
+                id: id ? parseInt(id) : Date.now(),
+                nip: document.getElementById('inNIP').value || '-',
+                nuptk: document.getElementById('inNUPTK').value || '-',
+                nama: document.getElementById('inNama').value,
+                gelar: document.getElementById('inGelar').value,
+                jk: document.getElementById('inJK').value,
+                jabatan: document.getElementById('inJabatan').value,
+                tugas: document.getElementById('inTugas').value || '-',
+                status: document.getElementById('inStatus').value,
+                hp: document.getElementById('inHP').value,
+                alamat: document.getElementById('inAlamat').value
+            };
+
+            if(!newData.nama) return alert("Nama wajib diisi!");
+
+            if(id) {
+                const idx = gurus.findIndex(x => x.id == id);
+                gurus[idx] = newData;
+            } else {
+                gurus.push(newData);
+            }
+            bootstrap.Modal.getInstance(document.getElementById('modalEditGuru')).hide();
+            applyFilters();
+        }
+
+        function deleteRow(id) {
+            if(confirm('Hapus data ini?')) {
+                gurus = gurus.filter(x => x.id !== id);
+                applyFilters();
+            }
+        }
+        function deleteSelected() {
+            const checked = Array.from(document.querySelectorAll('.row-check:checked')).map(cb => parseInt(cb.value));
+            if(checked.length === 0) return alert("Pilih data dulu!");
+            if(confirm(`Hapus ${checked.length} data terpilih?`)) {
+                gurus = gurus.filter(x => !checked.includes(x.id));
+                applyFilters();
+                document.getElementById('checkAll').checked = false;
+            }
+        }
+
+        // Clock
+        setInterval(()=>{
+            const n=new Date();
+            document.getElementById('jamHeader').innerText = n.toLocaleTimeString('en-GB').replace(/:/g,'.');
+            document.getElementById('tglHeader').innerText = n.toLocaleDateString('id-ID', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+        }, 1000);
+    </script>
+</body>
+</html>

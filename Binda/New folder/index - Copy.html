@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Binda - Data Siswa</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary-blue: #0d6efd;
+            --bg-light: #f4f6f9;
+            --text-grey: #6c757d;
+            --sidebar-width: 240px;
+            --panel-width: 300px; /* Lebar panel kanan */
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-light);
+            font-size: 0.85rem;
+            color: #333;
+            overflow-x: hidden; /* Mencegah scroll horizontal */
+        }
+
+        /* --- 1. HEADER (Top) --- */
+        .top-header {
+            background: white;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.05);
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 1000;
+        }
+        .header-center { flex-grow: 1; text-align: center; }
+
+        /* --- 2. SIDEBAR (Left) --- */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: white;
+            position: fixed;
+            top: 60px; bottom: 0; left: 0;
+            padding-top: 15px;
+            overflow-y: auto;
+            border-right: 1px solid #e9ecef;
+            z-index: 900;
+        }
+        .sidebar ul { list-style: none; padding-left: 0; margin: 0; }
+        .nav-link {
+            color: var(--text-grey);
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start; /* Rata Kiri */
+            gap: 15px; /* Jarak Icon ke Teks */
+            text-decoration: none;
+            font-weight: 500;
+            transition: 0.2s;
+        }
+        .nav-link:hover { color: var(--primary-blue); background: #f8f9fa; }
+        .nav-link.active { background: #eef4ff; color: var(--primary-blue); border-right: 4px solid var(--primary-blue); }
+        .nav-link i.icon-left { width: 20px; text-align: center; }
+        .nav-link .fa-chevron-down { margin-left: auto; font-size: 0.7rem; transition: 0.3s; }
+        
+        /* Submenu */
+        .submenu { display: none; background: white; }
+        .submenu.show { display: block; }
+        .submenu a { padding-left: 55px; font-size: 0.8rem; height: 35px; }
+
+        /* --- 3. MAIN CONTENT WRAPPER --- */
+        .main-wrapper {
+            margin-left: var(--sidebar-width);
+            margin-top: 60px;
+            min-height: calc(100vh - 60px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- 4. TOP CONTROL PANEL (Breadcrumb & Search) --- */
+        .control-panel {
+            background: white;
+            padding: 8px 25px; /* Diperkecil sesuai request */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .breadcrumb-nav a { text-decoration: none; color: #888; font-size: 0.85rem; }
+        .breadcrumb-nav span { margin: 0 5px; color: #ccc; }
+        .breadcrumb-nav .active-path { color: var(--primary-blue); font-weight: 600; }
+
+        .realtime-search { position: relative; }
+        .realtime-search input {
+            width: 250px;
+            padding: 6px 15px 6px 35px;
+            border-radius: 20px;
+            border: 1px solid #ddd;
+            background: #f8f9fa;
+            font-size: 0.85rem;
+            outline: none;
+        }
+        .realtime-search i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #aaa; font-size: 0.8rem;}
+
+        /* --- 5. CONTENT BODY (Flex Container) --- */
+        .content-body {
+            padding: 20px;
+            display: flex; /* Kunci agar Panel Kanan bersandingan */
+            flex-grow: 1;
+            gap: 20px;
+            overflow: hidden; 
+        }
+
+        /* Bagian Kiri (Tabel/Kartu) */
+        .data-area {
+            flex-grow: 1;
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+            overflow-x: auto;
+            transition: 0.3s; /* Animasi saat panel kanan tutup */
+        }
+
+        /* Bagian Kanan (Panel Preview) */
+        .right-panel {
+            width: var(--panel-width);
+            background: white;
+            border-left: 1px solid #eee; /* Opsional, ganti border jadi shadow atau card terpisah */
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex-shrink: 0; /* Agar tidak tergencet */
+            
+            /* Animasi Hide/Show */
+            transition: all 0.3s ease;
+            transform-origin: right center;
+        }
+
+        /* Class untuk menyembunyikan panel kanan */
+        .right-panel.hidden {
+            width: 0;
+            padding: 0;
+            margin: 0;
+            opacity: 0;
+            overflow: hidden;
+            border: none;
+        }
+
+        /* Tombol Toggle Panel */
+        .btn-toggle-panel {
+            align-self: flex-start;
+            background: none;
+            border: none;
+            color: #aaa;
+            font-size: 1.2rem;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+        .btn-toggle-panel:hover { color: var(--primary-blue); }
+
+
+        /* --- 6. COMPONENTS UI --- */
+        /* Box Tabs */
+        .box-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+        .box-tab { 
+            border: 1px solid #ddd; padding: 5px 20px; 
+            border-radius: 4px; cursor: pointer; color: var(--primary-blue); background: white;
+        }
+        .box-tab.active { background: var(--primary-blue); color: white; border-color: var(--primary-blue); }
+
+        /* Table */
+        .table-custom { width: 100%; border-collapse: separate; border-spacing: 0 5px; }
+        .table-custom thead th { color: var(--primary-blue); padding: 10px; border-bottom: 1px solid #eee; }
+        .table-custom tbody tr { background: white; cursor: pointer; transition: 0.2s; }
+        .table-custom tbody tr:hover { transform: translateY(-2px); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .table-custom td { padding: 10px; vertical-align: middle; border-top: 1px solid #f9f9f9; border-bottom: 1px solid #f9f9f9; }
+        .table-custom tr.selected { background: var(--primary-blue) !important; color: white; }
+        .table-custom tr.selected td { border-color: var(--primary-blue); }
+        .table-custom tr.selected .text-muted { color: #eef4ff !important; }
+
+        /* Grid Cards */
+        .grid-container { display: none; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; }
+        .student-card {
+            border: 1px solid #eee; padding: 15px; text-align: center; border-radius: 8px; cursor: pointer; background: white;
+        }
+        .student-card:hover { border-color: var(--primary-blue); transform: translateY(-3px); }
+        .student-card img { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid #f8f9fa; margin-bottom: 10px; }
+
+        /* Buttons */
+        .btn-custom { padding: 5px 12px; border-radius: 4px; border: none; font-size: 0.8rem; color: white; text-decoration: none; display: inline-flex; align-items: center; gap: 5px;}
+        .btn-grey { background: #6c757d; } .btn-green { background: #198754; } .btn-red { background: #dc3545; } .btn-blue { background: #0d6efd; }
+
+    </style>
+</head>
+<body>
+
+    <header class="top-header">
+        <div class="brand-logo me-4">
+            <img src="{{ url_for('static', filename='img/logo_app.png') }}" height="30" alt="Binda">
+        </div>
+        
+        <div class="header-center">
+            <div id="jam" style="font-weight: 600;">00.00.00</div>
+            <div id="tanggal" style="font-size: 0.7rem; color: #888;">...</div>
+        </div>
+
+        <div class="header-right d-flex align-items-center">
+            <div class="text-end me-3">
+                <h6 class="m-0 fw-bold" style="font-size: 0.9rem;">SMK DARUL ABROR</h6>
+                <small class="text-primary" style="font-size: 0.7rem;">masuk sebagai admin</small>
+            </div>
+            <img src="{{ url_for('static', filename='img/logo_sekolah.png') }}" height="35" alt="Sekolah">
+        </div>
+    </header>
+
+    <nav class="sidebar">
+        <ul>
+            <li><a href="#" class="nav-link"><i class="fas fa-th-large icon-left"></i> Beranda</a></li>
+            
+            <li>
+                <a href="#" class="nav-link active" onclick="toggleSubmenu('menuSiswa', this)">
+                    <i class="fas fa-user-graduate icon-left"></i> Siswa 
+                    <i class="fas fa-chevron-down"></i>
+                </a>
+                <ul id="menuSiswa" class="submenu show">
+                    <li>
+                        <a href="#" class="nav-link" style="color:var(--primary-blue); font-weight:600;">
+                            Aktif <i class="fas fa-chevron-down ms-auto" style="font-size:0.6rem"></i>
+                        </a>
+                        <div style="padding-left: 75px;">
+                            <a href="#" style="display:block; padding:3px 0; color:#444; text-decoration:none; font-size:0.8rem">• DKV</a>
+                            <a href="#" style="display:block; padding:3px 0; color:#888; text-decoration:none; font-size:0.8rem">• TKJ</a>
+                        </div>
+                    </li>
+                    <li><a href="#" class="nav-link">Lulus</a></li>
+                    <li><a href="#" class="nav-link">Keluar</a></li>
+                </ul>
+            </li>
+
+            <li><a href="#" class="nav-link"><i class="fas fa-chalkboard-teacher icon-left"></i> Guru/Karyawan</a></li>
+            <li><a href="#" class="nav-link"><i class="fas fa-calendar-alt icon-left"></i> Kaldik</a></li>
+            <li><a href="#" class="nav-link"><i class="fas fa-cog icon-left"></i> Pengaturan</a></li>
+            <li><a href="#" class="nav-link text-danger mt-4"><i class="fas fa-power-off icon-left"></i> Keluar</a></li>
+        </ul>
+    </nav>
+
+    <div class="main-wrapper">
+        
+        <div class="control-panel">
+            <div class="breadcrumb-nav">
+                <a href="#">Buku Induk</a> <span>/</span> 
+                <a href="#">Siswa</a> <span>/</span> 
+                <a href="#">Aktif</a> <span>/</span> 
+                <a href="#">DKV</a> <span>/</span> 
+                <span class="active-path">Kelas X</span>
+            </div>
+            <div class="realtime-search">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" placeholder="Cari NIS, Nama..." onkeyup="searchFunction()">
+            </div>
+        </div>
+
+        <div class="content-body">
+            
+            <div class="data-area">
+                
+                <div class="box-tabs">
+                    <div class="box-tab">Semua</div>
+                    <div class="box-tab active">Kelas X</div>
+                    <div class="box-tab">Kelas XI</div>
+                    <div class="box-tab">Kelas XII</div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <select class="form-select form-select-sm border-0 bg-light text-primary fw-bold" style="width: 120px;">
+                            <option>X DKV 1</option>
+                            <option>X DKV 2</option>
+                        </select>
+                        <span style="cursor:pointer;" onclick="switchView('list')"><i class="fas fa-list text-primary"></i> Daftar</span>
+                        <span style="cursor:pointer; color:#aaa;" onclick="switchView('card')"><i class="fas fa-th-large"></i> Kartu</span>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn-custom btn-grey">Cetak</button>
+                        <button class="btn-custom btn-green">Ekspor .xlsx</button>
+                        <button class="btn-custom btn-red">Hapus</button>
+                        <a href="{{ url_for('siswa_tambah') }}" class="btn-custom btn-blue">+ Tambah</a>
+                    </div>
+                </div>
+
+                <div id="viewList" class="table-responsive">
+                    <table class="table-custom">
+                        <thead>
+                            <tr>
+                                <th width="3%"><input type="checkbox"></th>
+                                <th>NIS</th>
+                                <th>Nama Lengkap</th>
+                                <th>L/P</th>
+                                <th>Tempat Lahir</th>
+                                <th>Tanggal Lahir</th>
+                                <th>Domisili</th>
+                                <th class="text-end">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for s in siswa %}
+                            <tr class="searchable-item" onclick="selectRow(this, {{ s.id }})" 
+                                data-name="{{ s.nama_lengkap }}" data-nis="{{ s.nis }}">
+                                <td><input type="checkbox" onclick="event.stopPropagation()"></td>
+                                <td>{{ s.nis }}</td>
+                                <td class="fw-bold">{{ s.nama_lengkap }}</td>
+                                <td>{{ s.jenis_kelamin }}</td>
+                                <td>{{ s.tempat_lahir }}</td>
+                                <td>{{ s.tanggal_lahir }}</td>
+                                <td>{{ s.domisili }}</td>
+                                <td class="text-end">
+                                    <a href="#" class="text-warning mx-1"><i class="far fa-edit"></i></a>
+                                    <div class="btn-group dropstart">
+                                        <a href="#" class="text-secondary mx-1" data-bs-toggle="dropdown" onclick="event.stopPropagation()"><i class="fas fa-ellipsis-v"></i></a>
+                                        <ul class="dropdown-menu shadow border-0">
+                                            <li><a class="dropdown-item" href="#">Detail</a></li>
+                                            <li><a class="dropdown-item" href="#">Cetak</a></li>
+                                        </ul>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="viewCard" class="grid-container">
+                    {% for s in siswa %}
+                    <div class="student-card searchable-item" onclick="selectCard(this, {{ s.id }})" data-name="{{ s.nama_lengkap }}">
+                        <img src="{{ url_for('static', filename='uploads/' + (s.foto_masuk if s.foto_masuk else 'none')) }}" 
+                             onerror="this.src='{{ url_for('static', filename='img/default_user.png') }}'">
+                        <div class="fw-bold text-truncate">{{ s.nama_lengkap }}</div>
+                        <div class="small text-muted">{{ s.nis }}</div>
+                        <div class="small text-primary mt-1">X DKV 1</div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="d-flex justify-content-between mt-4 text-muted small border-top pt-2">
+                    <div>
+                        Laki-Laki: <b class="text-primary">{{ stats.L }}</b> | 
+                        Perempuan: <b class="text-primary">{{ stats.P }}</b> |
+                        Darul Abror: <b class="text-primary">{{ stats.domisili }}</b>
+                    </div>
+                    <div>Total: {{ stats.total }} Siswa</div>
+                </div>
+
+            </div> <div class="right-panel" id="rightPanel">
+                
+                <button class="btn-toggle-panel" onclick="togglePanel()" title="Tutup Panel">
+                    <i class="fas fa-chevron-right" id="toggleIcon"></i>
+                </button>
+
+                <h6 class="fw-bold mb-0 mt-2" id="p_nama">Pilih Siswa</h6>
+                <div class="text-primary small mb-3" id="p_nis">...</div>
+
+                <div class="bg-light border rounded p-2 mb-2 w-100 d-flex justify-content-center align-items-center" style="height: 180px;">
+                    <img id="p_foto" src="{{ url_for('static', filename='img/default_user.png') }}" 
+                         style="max-height: 100%; max-width: 100%; object-fit: contain;"
+                         onerror="this.src='{{ url_for('static', filename='img/default_user.png') }}'">
+                </div>
+                <small class="text-end w-100 d-block text-muted mb-3" style="font-size: 0.7rem;">Pasphoto saat masuk <i class="fas fa-external-link-alt"></i></small>
+
+                <div class="bg-light border rounded p-2 mb-2 w-100 d-flex justify-content-center align-items-center" style="height: 180px; color:#ccc;">
+                    <i class="fas fa-user fa-3x"></i>
+                </div>
+                <small class="text-end w-100 d-block text-muted" style="font-size: 0.7rem;">Pasphoto saat keluar <i class="fas fa-external-link-alt"></i></small>
+            </div>
+
+        </div> </div> <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 1. JAM & TANGGAL
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('jam').innerText = now.toLocaleTimeString('en-GB', {hour12: false}).replace(/:/g, '.');
+            document.getElementById('tanggal').innerText = now.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        }, 1000);
+
+        // 2. TOGGLE PANEL KANAN
+        function togglePanel() {
+            const panel = document.getElementById('rightPanel');
+            const icon = document.getElementById('toggleIcon');
+            
+            if (panel.classList.contains('hidden')) {
+                // Buka
+                panel.classList.remove('hidden');
+                icon.classList.remove('fa-chevron-left');
+                icon.classList.add('fa-chevron-right');
+            } else {
+                // Tutup
+                panel.classList.add('hidden');
+                icon.classList.remove('fa-chevron-right');
+                icon.classList.add('fa-chevron-left');
+            }
+        }
+
+        // 3. SWITCH VIEW (List / Card)
+        function switchView(view) {
+            if(view === 'list') {
+                document.getElementById('viewList').style.display = 'block';
+                document.getElementById('viewCard').style.display = 'none';
+            } else {
+                document.getElementById('viewList').style.display = 'none';
+                document.getElementById('viewCard').style.display = 'grid';
+            }
+        }
+
+        // 4. LOAD DATA (AJAX)
+        function selectRow(row, id) {
+            // Hapus kelas selected dari semua tr
+            document.querySelectorAll('tr').forEach(r => r.classList.remove('selected'));
+            row.classList.add('selected');
+            loadPreview(id);
+        }
+
+        function selectCard(card, id) {
+            document.querySelectorAll('.student-card').forEach(c => c.style.borderColor = '#eee');
+            card.style.borderColor = '#0d6efd';
+            loadPreview(id);
+        }
+
+        function loadPreview(id) {
+            // Jika panel tertutup, buka dulu
+            const panel = document.getElementById('rightPanel');
+            if(panel.classList.contains('hidden')) togglePanel();
+
+            fetch(`/siswa/detail/${id}`)
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('p_nama').innerText = "'" + data.nama + "'";
+                    document.getElementById('p_nis').innerText = data.nis;
+                    
+                    const img = document.getElementById('p_foto');
+                    if(data.foto) {
+                        img.src = "/static/uploads/" + data.foto;
+                    } else {
+                        img.src = "{{ url_for('static', filename='img/default_user.png') }}";
+                    }
+                });
+        }
+
+        // 5. SEARCH REALTIME
+        function searchFunction() {
+            let input = document.getElementById('searchInput');
+            let filter = input.value.toUpperCase();
+            let items = document.getElementsByClassName('searchable-item');
+
+            for (let i = 0; i < items.length; i++) {
+                let name = items[i].getAttribute('data-name');
+                let nis = items[i].getAttribute('data-nis') || ''; // Handle jika NIS null
+                if (name.toUpperCase().indexOf(filter) > -1 || nis.indexOf(filter) > -1) {
+                    items[i].style.display = "";
+                } else {
+                    items[i].style.display = "none";
+                }
+            }
+        }
+
+        // 6. TOGGLE SUBMENU SIDEBAR
+        function toggleSubmenu(id, link) {
+            const el = document.getElementById(id);
+            const icon = link.querySelector('.fa-chevron-down');
+            
+            if (el.classList.contains('show')) {
+                el.classList.remove('show');
+                icon.style.transform = 'rotate(0deg)';
+            } else {
+                el.classList.add('show');
+                icon.style.transform = 'rotate(180deg)';
+            }
+        }
+    </script>
+</body>
+</html>

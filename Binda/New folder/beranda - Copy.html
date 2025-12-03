@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Binda - Sistem Informasi Sekolah</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            --primary-blue: #0d6efd;
+            --primary-green: #198754;
+            --primary-orange: #fd7e14;
+            --bg-light: #f4f6f9;
+            --text-grey: #6c757d;
+            --sidebar-width: 240px;
+            --header-height: 65px;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-light);
+            font-size: 0.85rem;
+            color: #333;
+            overflow: hidden; /* Prevent body scroll, handle in containers */
+            margin: 0;
+            height: 100vh;
+        }
+
+        /* --- LAYOUT UTAMA --- */
+        .top-header {
+            background: white; height: var(--header-height);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 25px; box-shadow: 0 1px 5px rgba(0,0,0,0.05);
+            position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+        }
+
+        .sidebar {
+            width: var(--sidebar-width); background: white;
+            position: fixed; top: var(--header-height); bottom: 0; left: 0;
+            padding-top: 20px; border-right: 1px solid #e9ecef; z-index: 900;
+            overflow-y: auto;
+        }
+        
+        .main-wrapper {
+            margin-left: var(--sidebar-width);
+            margin-top: var(--header-height);
+            height: calc(100vh - var(--header-height));
+            display: flex; flex-direction: column;
+        }
+
+        .breadcrumb-container {
+            padding: 10px 30px; background: var(--bg-light);
+            font-size: 0.9rem; font-weight: 500; color: #888;
+            flex-shrink: 0; /* Jangan menyusut */
+        }
+        .breadcrumb-container span { color: var(--primary-blue); font-weight: 600; }
+
+        .content-container {
+            padding: 0 30px 20px 30px; /* Padding bawah 20px agar tidak mentok total */
+            flex-grow: 1; 
+            overflow-y: auto; /* Scroll konten disini */
+            height: 100%;
+        }
+
+        /* --- STYLES GLOBAL --- */
+        .nav-link { color: var(--text-grey); padding: 12px 25px; display: flex; align-items: center; gap: 15px; text-decoration: none; font-weight: 500; transition: 0.2s; }
+        .nav-link:hover { color: var(--primary-blue); background: #f8f9fa; }
+        .nav-link.active-menu { background: var(--primary-blue); color: white; border-radius: 0 50px 50px 0; margin-right: 15px; }
+        .submenu { display: none; background: white; padding-left: 0; }
+        .submenu.show { display: block; }
+        
+        /* HEADER COMPONENTS */
+        .header-search { display: flex; align-items: center; gap: 10px; color: #ccc; background: #fff; padding: 5px 10px; border-radius: 20px; border: 1px solid #eee; }
+        .header-search input { border: none; outline: none; font-size: 0.85rem; color: #666; width: 200px; }
+        .clock-time { font-weight: 600; font-size: 1rem; color: #333; }
+        .clock-date { font-size: 0.75rem; color: #0d6efd; font-weight: 500; }
+        .school-info h6 { margin: 0; font-weight: 700; font-size: 0.9rem; }
+        .school-info span { font-size: 0.7rem; color: #666; }
+
+        /* === HALAMAN BERANDA (FULL HEIGHT) === */
+        .dashboard-grid { 
+            display: grid; 
+            grid-template-columns: 2.5fr 1fr 1fr; 
+            gap: 20px; 
+            height: 100%; /* Isi penuh container */
+        }
+        
+        .dashboard-left { display: flex; flex-direction: column; gap: 20px; height: 100%; }
+        .charts-row {
+            background: white; border-radius: 10px; padding: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+            flex-grow: 1; /* Stretch ke bawah */
+            display: flex; flex-direction: column;
+        }
+        
+        /* Sync Panel */
+        .dashboard-middle {
+            background: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+            padding: 20px; height: 100%; display: flex; flex-direction: column;
+        }
+
+        /* Night Panel */
+        .dashboard-right { height: 100%; }
+        .dashboard-right-link { text-decoration: none; display: block; height: 100%; transition: transform 0.2s; }
+        .db-right-bottom {
+            background: #0f172a; color: white; padding: 30px 20px; text-align: center;
+            position: relative; height: 100%; border-radius: 10px;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            box-shadow: 0 4px 15px rgba(15, 23, 42, 0.3); overflow: hidden;
+        }
+
+        /* Stats Card Styles */
+        .stats-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .stat-card { background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); display: flex; position: relative; overflow: hidden; }
+        .stat-left-box { width: 90px; height: 70px; border-radius: 8px; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .stat-left-box h3 { font-size: 1.8rem; font-weight: 700; margin: 0; line-height: 1; }
+        .bg-blue { background: var(--primary-blue); } .bg-green { background: var(--primary-green); } .bg-orange { background: var(--primary-orange); }
+
+        /* === HALAMAN SISWA === */
+        .siswa-layout { display: flex; gap: 20px; height: 100%; }
+        .siswa-grid { flex-grow: 1; background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); display: flex; flex-direction: column; }
+        .table-responsive { flex-grow: 1; }
+        .siswa-right-panel {
+            width: 280px; background: white; border-radius: 10px; padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02); height: fit-content; border: 1px solid #eee;
+            transition: all 0.3s;
+        }
+        .siswa-right-panel.hidden { width: 0; padding: 0; overflow: hidden; border: none; opacity: 0; }
+        .floating-expand-btn {
+            position: absolute; top: 120px; right: 30px; 
+            background: var(--primary-blue); color: white; width: 40px; height: 40px;
+            border-radius: 50%; cursor: pointer; box-shadow: 0 4px 10px rgba(13,110,253,0.3);
+            z-index: 99; display: none; align-items: center; justify-content: center;
+        }
+
+        /* === HALAMAN KALDIK (KALENDER PENDIDIKAN) === */
+        .kaldik-layout {
+            display: flex; gap: 20px; height: 100%;
+        }
+        .kaldik-main {
+            flex-grow: 1; background: white; border-radius: 10px; 
+            padding: 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+            overflow-y: auto; display: flex; flex-direction: column;
+        }
+        .kaldik-notes {
+            width: 400px; background: white; border-radius: 10px;
+            padding: 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+            overflow-y: auto; border-left: 1px solid #f0f0f0;
+        }
+
+        /* Calendar Styles */
+        .calendar-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .year-selector { font-size: 1.2rem; font-weight: 700; color: #333; display: flex; align-items: center; gap: 10px; }
+        .btn-cal-nav { background: #f8f9fa; border: 1px solid #ddd; padding: 5px 10px; border-radius: 5px; cursor: pointer; }
+        .btn-cal-nav:hover { background: #e9ecef; }
+
+        .calendar-wrapper { display: flex; flex-direction: column; gap: 30px; }
+        .month-block { margin-bottom: 10px; }
+        .month-title { font-size: 1rem; font-weight: 600; color: #555; margin-bottom: 10px; border-bottom: 2px solid #f0f0f0; padding-bottom: 5px; display: flex; justify-content: space-between; }
+        
+        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; gap: 5px; }
+        .cal-header { font-size: 0.8rem; font-weight: 600; color: #888; padding: 10px 0; }
+        
+        .cal-day { 
+            aspect-ratio: 1/1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            font-size: 0.9rem; cursor: pointer; border-radius: 8px; position: relative; transition: 0.2s;
+        }
+        .cal-day:hover { background-color: #f8f9fa; }
+        .cal-day.empty { cursor: default; background: none; }
+        .cal-day.today { color: var(--primary-blue); font-weight: 700; background-color: #eef4ff; }
+        .cal-day.selected { background-color: var(--primary-blue); color: white; box-shadow: 0 4px 10px rgba(13,110,253,0.3); }
+        .cal-day.weekend { color: #dc3545; }
+        
+        /* Event Dot */
+        .event-dot {
+            width: 5px; height: 5px; background-color: var(--primary-green);
+            border-radius: 50%; margin-top: 4px;
+        }
+        .cal-day.holiday .event-dot { background-color: #dc3545; }
+
+        /* Notes Style */
+        .note-item { margin-bottom: 25px; position: relative; padding-left: 20px; }
+        .note-item::before {
+            content: ''; position: absolute; left: 0; top: 5px;
+            width: 2px; height: 100%; background: #e9ecef;
+        }
+        .note-date { font-size: 0.85rem; font-weight: 600; color: #555; display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
+        .note-icon { color: var(--primary-blue); }
+        .note-content { font-size: 0.8rem; color: #666; background: #f8f9fa; padding: 10px; border-radius: 6px; position: relative; }
+        .note-content h6 { margin: 0 0 5px 0; font-size: 0.85rem; font-weight: 600; color: var(--primary-blue); }
+        .note-link { font-size: 0.75rem; color: #999; text-decoration: none; display: inline-block; margin-top: 5px; }
+
+        /* Hover Tooltip Custom */
+        .custom-tooltip {
+            position: absolute; background: #333; color: white; padding: 5px 10px; 
+            border-radius: 4px; font-size: 0.75rem; z-index: 1000; pointer-events: none;
+            display: none; white-space: nowrap;
+        }
+        
+        /* Modal Custom */
+        .modal-header { border-bottom: none; }
+        .modal-footer { border-top: none; }
+
+        /* Components */
+        .box-tab { border: 1px solid #ddd; padding: 5px 20px; border-radius: 4px; cursor: pointer; color: var(--primary-blue); background: white; margin-right:5px; font-size: 0.85rem;}
+        .box-tab.active { background: var(--primary-blue); color: white; border-color: var(--primary-blue); }
+        .table-custom { width: 100%; border-collapse: separate; border-spacing: 0 5px; font-size: 0.8rem; }
+        .table-custom tbody tr { background: white; }
+        .table-custom tbody tr:hover { transform: translateY(-2px); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+
+    </style>
+</head>
+<body>
+
+    <!-- TOOLTIP ABSOLUTE -->
+    <div id="calendarTooltip" class="custom-tooltip">Info Acara</div>
+
+    <!-- 1. HEADER -->
+    <header class="top-header">
+        <div class="header-left d-flex align-items-center gap-4">
+            <img src="{{ url_for('static', filename='img/logo_app.png') }}" height="32" alt="Binda">
+            <div class="header-search">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Pencarian">
+            </div>
+        </div>
+
+        <div class="header-center">
+            <div class="clock-time" id="jamHeader">00.00.00</div>
+            <div class="clock-date" id="tanggalHeader">...</div>
+        </div>
+
+        <div class="header-right">
+            <div class="school-info d-flex align-items-center gap-3">
+                <div class="text-end">
+                    <h6>SMK DARUL ABROR</h6>
+                    <span>masuk sebagai <a href="#">admin</a></span>
+                </div>
+                <img src="{{ url_for('static', filename='img/logo_sekolah.png') }}" height="40" alt="Sekolah">
+            </div>
+        </div>
+    </header>
+
+    <!-- 2. SIDEBAR -->
+    <nav class="sidebar">
+        <div class="nav flex-column">
+            <a href="#" class="nav-link active-menu" id="menuBeranda" onclick="showPage('beranda')">
+                <i class="fas fa-th-large" style="width:20px;text-align:center;"></i> Beranda
+            </a>
+            
+            <a href="#" class="nav-link" id="menuSiswa" onclick="toggleSubmenu('subSiswa'); showPage('siswa')">
+                <i class="fas fa-user-graduate" style="width:20px;text-align:center;"></i> Siswa
+                <i class="fas fa-chevron-down ms-auto" style="font-size:0.7rem"></i>
+            </a>
+            <div id="subSiswa" class="submenu">
+                <a href="#" class="nav-link" style="padding-left: 60px; font-size: 0.8rem; color: var(--primary-blue);">Aktif</a>
+                <a href="#" class="nav-link" style="padding-left: 60px; font-size: 0.8rem;">Lulus</a>
+                <a href="#" class="nav-link" style="padding-left: 60px; font-size: 0.8rem;">Keluar</a>
+            </div>
+
+            <!-- Menu Kaldik Baru -->
+            <a href="#" class="nav-link" id="menuKaldik" onclick="showPage('kaldik')">
+                <i class="fas fa-calendar-alt" style="width:20px;text-align:center;"></i> Kaldik
+            </a>
+
+            <a href="#" class="nav-link"><i class="fas fa-chalkboard-teacher" style="width:20px;text-align:center;"></i> Guru</a>
+            <a href="#" class="nav-link"><i class="fas fa-cog" style="width:20px;text-align:center;"></i> Pengaturan</a>
+            <a href="#" class="nav-link text-danger mt-4"><i class="fas fa-power-off" style="width:20px;text-align:center;"></i> Keluar</a>
+        </div>
+    </nav>
+
+    <!-- 3. MAIN WRAPPER -->
+    <div class="main-wrapper">
+        <div class="breadcrumb-container" id="breadcrumb">
+            Buku Induk / <span>Pengaturan</span>
+        </div>
+
+        <div class="content-container">
+
+            <!-- === PAGE: BERANDA === -->
+            <div id="page-beranda" style="display: block; height: 100%;">
+                <div class="dashboard-grid">
+                    <!-- KIRI -->
+                    <div class="dashboard-left">
+                        <div class="stats-row">
+                            <div class="stat-card">
+                                <div class="stat-left-box bg-blue"><span>Siswa Aktif</span><h3>275</h3></div>
+                                <div class="stat-details ms-3">
+                                    <div>L: <b>128</b> Pr: <b>147</b></div>
+                                    <div>Pondok: <b>250</b></div>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-left-box bg-green"><span>Lulus</span><h3>1853</h3></div>
+                                <div class="stat-details ms-3">
+                                    <div>L: <b>900</b> Pr: <b>953</b></div>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-left-box bg-orange"><span>Keluar</span><h3>12</h3></div>
+                                <div class="stat-details ms-3">
+                                    <div>Pindah: <b>11</b></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="charts-row">
+                            <h5 class="fw-bold text-primary mb-1">Data Prosentase Siswa</h5>
+                            <div style="flex-grow: 1; display:flex; justify-content: space-around; align-items: flex-end;">
+                                <div style="width: 45%;"><canvas id="chartGender"></canvas></div>
+                                <div style="width: 45%;"><canvas id="chartJurusan"></canvas></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TENGAH -->
+                    <div class="dashboard-middle">
+                        <div class="d-flex justify-content-between mb-4 align-items-center">
+                            <span class="fw-bold small text-muted">Sinkronisasi (DKV)</span>
+                            <i class="fas fa-chevron-down text-primary"></i>
+                        </div>
+                        <div class="d-flex flex-column gap-3">
+                            <div style="padding-bottom:10px; border-bottom:1px solid #eee;">
+                                <div class="d-flex justify-content-between"><h6 class="m-0 small fw-bold">X DKV 1</h6><i class="fas fa-check-circle text-success"></i></div>
+                                <span class="small text-muted">Wali: Burhanudin</span>
+                            </div>
+                            <div style="padding-bottom:10px; border-bottom:1px solid #eee;">
+                                <div class="d-flex justify-content-between"><h6 class="m-0 small fw-bold">X DKV 2</h6><i class="fas fa-check-circle text-success"></i></div>
+                                <span class="small text-muted">Wali: Siti Aminah</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- KANAN -->
+                    <div class="dashboard-right">
+                        <a href="#" class="dashboard-right-link">
+                            <div class="db-right-bottom">
+                                <img src="{{ url_for('static', filename='img/logo_sekolah.png') }}" width="80" style="margin-bottom:15px;">
+                                <h5 class="fw-bold mb-4">DARUL ABROR</h5>
+                                <div style="font-size:3rem; font-weight:700; line-height:1;" id="jamBig">14:30</div>
+                                <div style="background:white; color:#333; padding:2px 15px; border-radius:15px; margin-top:10px; font-size:0.9rem;" id="tglBig">Rabu...</div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- === PAGE: SISWA === -->
+            <div id="page-siswa" style="display: none; height: 100%;">
+                <div id="btnExpandSiswa" class="floating-expand-btn" onclick="toggleSiswaPanel()"><i class="fas fa-chevron-left"></i></div>
+                <div class="siswa-layout">
+                    <div class="siswa-grid">
+                        <div class="d-flex mb-3">
+                            <div class="box-tab active">Semua</div>
+                            <div class="box-tab">Kelas X</div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table-custom">
+                                <thead>
+                                    <tr><th><input type="checkbox"></th><th>NIS</th><th>Nama</th><th>L/P</th><th>Domisili</th><th class="text-end">Aksi</th></tr>
+                                </thead>
+                                <tbody>
+                                    {% for s in siswa %}
+                                    <tr onclick="selectRow(this, {{ s.id }})">
+                                        <td><input type="checkbox"></td>
+                                        <td>{{ s.nis }}</td>
+                                        <td class="fw-bold">{{ s.nama_lengkap }}</td>
+                                        <td>{{ s.jenis_kelamin }}</td>
+                                        <td>{{ s.domisili }}</td>
+                                        <td class="text-end"><i class="fas fa-ellipsis-v text-muted"></i></td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="siswa-right-panel" id="siswaPanel">
+                        <button onclick="toggleSiswaPanel()" class="btn btn-sm btn-light mb-2"><i class="fas fa-chevron-right"></i></button>
+                        <h6 class="fw-bold text-center" id="p_nama">Pilih Siswa</h6>
+                        <div class="bg-light p-2 mb-2 d-flex justify-content-center" style="height:150px;"><img id="p_foto" src="" style="max-height:100%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- === PAGE: KALDIK (BARU) === -->
+            <div id="page-kaldik" style="display: none; height: 100%;">
+                <div class="kaldik-layout">
+                    <!-- KIRI: KALENDER -->
+                    <div class="kaldik-main">
+                        <div class="calendar-controls">
+                            <div class="year-selector">
+                                <span id="currentYearDisplay">2025</span>
+                                <div class="d-flex gap-1">
+                                    <button class="btn-cal-nav" onclick="prevMonth()"><i class="fas fa-chevron-up"></i></button>
+                                    <button class="btn-cal-nav" onclick="nextMonth()"><i class="fas fa-chevron-down"></i></button>
+                                </div>
+                            </div>
+                            <div>
+                                <button class="btn btn-sm btn-primary" onclick="openEventModal()"><i class="fas fa-plus"></i> Kegiatan</button>
+                            </div>
+                        </div>
+
+                        <div class="calendar-wrapper">
+                            <!-- Bulan 1 -->
+                            <div class="month-block" id="calendarMonth1">
+                                <!-- Generated by JS -->
+                            </div>
+                            
+                            <!-- Bulan 2 -->
+                            <div class="month-block" id="calendarMonth2">
+                                <!-- Generated by JS -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- KANAN: KETERANGAN / NOTES -->
+                    <div class="kaldik-notes">
+                        <div class="d-flex justify-content-between mb-4">
+                            <h6 class="fw-bold">Keterangan</h6>
+                            <h6 class="fw-bold text-muted">Catatan</h6>
+                        </div>
+
+                        <!-- List Events Dynamic -->
+                        <div id="eventListContainer">
+                            <!-- Sample Event -->
+                            <div class="note-item">
+                                <div class="note-date">
+                                    <i class="far fa-calendar text-primary"></i> 05 November 2025
+                                </div>
+                                <div class="mb-1">
+                                    <span class="badge bg-primary me-2">Nasional</span>
+                                    <span style="font-size:0.85rem; font-weight:500;">Hari Cinta Puspa dan Satwa</span>
+                                    <a href="#" class="ms-2 small"><i class="far fa-edit"></i></a>
+                                </div>
+                                <div class="note-content">
+                                    Kita akan mengadakan acara yang akan dilakukan bersama waka kesiswaan.
+                                    <br>
+                                    <a href="#" class="note-link"><i class="far fa-edit"></i> ubah catatan</a>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- MODAL ADD EVENT -->
+    <div class="modal fade" id="eventModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">Tambah Agenda</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Tanggal</label>
+                            <input type="date" class="form-control" id="modalDateInput">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Nama Kegiatan</label>
+                            <input type="text" class="form-control" placeholder="Contoh: Hari Guru">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Kategori</label>
+                            <select class="form-select">
+                                <option>Libur Nasional</option>
+                                <option>Kegiatan Sekolah</option>
+                                <option>Ujian</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Catatan Tambahan</label>
+                            <textarea class="form-control" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary w-100">Simpan Agenda</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // --- DATA DUMMY EVENT ---
+        const schoolEvents = {
+            "2025-11-05": { title: "Hari Cinta Puspa", type: "holiday", note: "Upacara bendera" },
+            "2025-11-12": { title: "Hari Ayah Nasional", type: "event", note: "" },
+            "2025-11-19": { title: "HUT Sekolah", type: "event", note: "Pentas seni" },
+            "2025-12-01": { title: "Hari Artileri", type: "event", note: "" },
+            "2025-12-25": { title: "Hari Natal", type: "holiday", note: "Libur Nasional" }
+        };
+
+        let currentYear = 2025;
+        let currentMonth = 10; // 0=Jan, 10=Nov
+
+        // --- NAVIGASI HALAMAN ---
+        function showPage(pageId) {
+            document.querySelectorAll('[id^="page-"]').forEach(el => el.style.display = 'none');
+            document.getElementById('page-' + pageId).style.display = 'block';
+
+            // Reset menu active state
+            document.querySelectorAll('.nav-link').forEach(el => {
+                el.classList.remove('active-menu');
+                if(el.style.color === 'white') el.style.color = '#6c757d'; // reset color manual
+                if(el.style.background === '#0d6efd') el.style.background = 'transparent';
+            });
+
+            const activeMenu = document.getElementById('menu' + pageId.charAt(0).toUpperCase() + pageId.slice(1));
+            if(activeMenu) activeMenu.classList.add('active-menu');
+
+            // Breadcrumb Update
+            const bc = document.getElementById('breadcrumb');
+            if(pageId === 'beranda') bc.innerHTML = 'Buku Induk / <span>Pengaturan</span>';
+            else if(pageId === 'siswa') bc.innerHTML = 'Buku Induk / Siswa / <span>Aktif</span>';
+            else if(pageId === 'kaldik') bc.innerHTML = 'Buku Induk / <span>Kaldik</span>';
+
+            if(pageId === 'kaldik') renderKaldik();
+        }
+
+        // --- LOGIC KALENDER ---
+        const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+        
+        function renderKaldik() {
+            document.getElementById('currentYearDisplay').innerText = currentYear;
+            generateMonthHTML(currentYear, currentMonth, 'calendarMonth1');
+            
+            // Logic bulan berikutnya (handle Des -> Jan)
+            let nextM = currentMonth + 1;
+            let nextY = currentYear;
+            if (nextM > 11) { nextM = 0; nextY++; }
+            generateMonthHTML(nextY, nextM, 'calendarMonth2');
+        }
+
+        function generateMonthHTML(year, month, containerId) {
+            const container = document.getElementById(containerId);
+            const firstDay = new Date(year, month, 1).getDay(); // 0 = Minggu
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            
+            let html = `
+                <div class="month-title">
+                    <span>${monthNames[month]} ${year}</span>
+                    <i class="far fa-calendar-alt text-muted"></i>
+                </div>
+                <div class="cal-grid">
+                    <div class="cal-header text-danger">Minggu</div>
+                    <div class="cal-header">Senin</div>
+                    <div class="cal-header">Selasa</div>
+                    <div class="cal-header">Rabu</div>
+                    <div class="cal-header">Kamis</div>
+                    <div class="cal-header text-success">Jum'at</div>
+                    <div class="cal-header">Sabtu</div>
+            `;
+
+            // Empty cells
+            for(let i=0; i<firstDay; i++) {
+                html += `<div class="cal-day empty"></div>`;
+            }
+
+            // Days
+            for(let d=1; d<=daysInMonth; d++) {
+                // Format YYYY-MM-DD
+                const dateKey = `${year}-${String(month+1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                const event = schoolEvents[dateKey];
+                
+                let classes = "cal-day";
+                let dot = "";
+                let tooltipAttr = "";
+
+                // Cek hari minggu / jumat
+                const dayOfWeek = new Date(year, month, d).getDay();
+                if(dayOfWeek === 0) classes += " weekend";
+                if(dayOfWeek === 5) classes += " text-success";
+
+                // Highlight Selected (Contoh tgl 19 Nov)
+                if(d === 19 && month === 10 && year === 2025) classes += " selected";
+
+                // Event Logic
+                if(event) {
+                    if(event.type === 'holiday') classes += " holiday";
+                    dot = `<div class="event-dot"></div>`;
+                    // Atribut untuk tooltip custom
+                    tooltipAttr = `data-title="${event.title}"`;
+                }
+
+                html += `
+                    <div class="${classes}" ${tooltipAttr} 
+                         onclick="openEventModal('${dateKey}')"
+                         onmouseenter="showTooltip(this)" onmouseleave="hideTooltip()">
+                        ${d} ${dot}
+                    </div>`;
+            }
+
+            html += `</div>`; // Close grid
+            container.innerHTML = html;
+        }
+
+        function prevMonth() {
+            currentMonth--;
+            if(currentMonth < 0) { currentMonth = 11; currentYear--; }
+            renderKaldik();
+        }
+
+        function nextMonth() {
+            currentMonth++;
+            if(currentMonth > 11) { currentMonth = 0; currentYear++; }
+            renderKaldik();
+        }
+
+        // --- TOOLTIP LOGIC (HOVER) ---
+        const tooltip = document.getElementById('calendarTooltip');
+        function showTooltip(el) {
+            const title = el.getAttribute('data-title');
+            if(title) {
+                const rect = el.getBoundingClientRect();
+                tooltip.style.display = 'block';
+                tooltip.innerText = title;
+                tooltip.style.top = (rect.top - 30) + 'px';
+                tooltip.style.left = (rect.left + (rect.width/2) - (tooltip.offsetWidth/2)) + 'px';
+            }
+        }
+        function hideTooltip() { tooltip.style.display = 'none'; }
+
+        // --- MODAL LOGIC (CLICK) ---
+        function openEventModal(dateKey) {
+            const modal = new bootstrap.Modal(document.getElementById('eventModal'));
+            if(dateKey) document.getElementById('modalDateInput').value = dateKey;
+            modal.show();
+        }
+
+        // --- FUNGSI PANEL SISWA ---
+        function toggleSiswaPanel() {
+            const panel = document.getElementById('siswaPanel');
+            const btn = document.getElementById('btnExpandSiswa');
+            if(panel.classList.contains('hidden')) {
+                panel.classList.remove('hidden'); btn.style.display = 'none';
+            } else {
+                panel.classList.add('hidden'); setTimeout(()=> btn.style.display = 'flex', 300);
+            }
+        }
+        function toggleSubmenu(id) { document.getElementById(id).style.display = document.getElementById(id).style.display==='block'?'none':'block'; }
+
+        // --- CLOCK & CHART INIT ---
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('jamHeader').innerText = now.toLocaleTimeString('en-GB', {hour12:false}).replace(/:/g,'.');
+            document.getElementById('tanggalHeader').innerText = now.toLocaleDateString('id-ID', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+            document.getElementById('jamBig').innerText = String(now.getHours()).padStart(2,'0')+":"+String(now.getMinutes()).padStart(2,'0');
+            document.getElementById('tglBig').innerText = now.toLocaleDateString('id-ID', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+        }
+        setInterval(updateClock, 1000); updateClock();
+
+        // Chart Init
+        const ctxGender = document.getElementById('chartGender');
+        if(ctxGender) { new Chart(ctxGender, { type: 'pie', data: { labels: ['L', 'P'], datasets: [{ data: [128, 147], backgroundColor: ['#0d6efd', '#dc3545'] }] } }); }
+        const ctxJurusan = document.getElementById('chartJurusan');
+        if(ctxJurusan) { new Chart(ctxJurusan, { type: 'pie', data: { labels: ['DKV', 'TKJ'], datasets: [{ data: [40, 20], backgroundColor: ['#6610f2', '#fd7e14'] }] } }); }
+    </script>
+</body>
+</html>

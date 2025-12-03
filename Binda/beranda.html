@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Binda - Beranda</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <style>
+        :root { --primary-blue: #0d6efd; --bg-light: #f4f6f9; --text-grey: #6c757d; --sidebar-width: 240px; --header-height: 65px; }
+        body { font-family: 'Poppins', sans-serif; background-color: var(--bg-light); font-size: 0.8rem; color: #333; overflow: hidden; margin: 0; height: 100vh; }
+        
+        /* Layout */
+        .top-header { background: white; height: var(--header-height); display: flex; align-items: center; justify-content: space-between; padding: 0 25px; box-shadow: 0 1px 5px rgba(0,0,0,0.05); position: fixed; top: 0; left: 0; right: 0; z-index: 1000; }
+        .sidebar { width: var(--sidebar-width); background: white; position: fixed; top: var(--header-height); bottom: 0; left: 0; padding-top: 20px; border-right: 1px solid #e9ecef; z-index: 900; overflow-y: auto; }
+        .main-wrapper { margin-left: var(--sidebar-width); margin-top: var(--header-height); height: calc(100vh - var(--header-height)); display: flex; flex-direction: column; }
+        .breadcrumb-container { padding: 10px 30px; background: var(--bg-light); font-size: 0.85rem; font-weight: 500; color: var(--text-grey); flex-shrink: 0; }
+        .breadcrumb-container span { color: var(--primary-blue); font-weight: 600; }
+        .content-container { padding: 0 30px 20px 30px; flex-grow: 1; height: 100%; overflow-y: auto; }
+        
+        /* Nav & Dashboard */
+        .nav-link { color: var(--text-grey); padding: 12px 25px; display: flex; align-items: center; gap: 15px; text-decoration: none; font-weight: 500; transition: 0.2s; }
+        .nav-link:hover { color: var(--primary-blue); background: #f8f9fa; }
+        .nav-link.active-menu { background: var(--primary-blue); color: white; border-radius: 0 50px 50px 0; margin-right: 15px; }
+        
+        /* GRID: Kiri (2.5fr), Tengah (1.2fr), Kanan (0.8fr) */
+        .dashboard-grid { display: grid; grid-template-columns: 2.5fr 1.2fr 0.8fr; gap: 20px; height: 100%; } 
+        
+        /* Stats Panels (UPDATED LAYOUT) */
+        .stats-container { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+        .stat-panel { 
+            background: white; border-radius: 12px; padding: 15px; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.03); border: 1px solid #eef2f6; 
+            position: relative; transition: transform 0.2s; 
+            display: flex; flex-direction: column;
+        }
+        .stat-panel:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+        
+        .stat-header { 
+            display: flex; align-items: center; gap: 15px; /* Gap antara Ikon dan Judul */
+            margin-bottom: 10px; border-bottom: 1px solid #f0f0f0; padding-bottom: 8px; 
+            position: relative; /* Untuk positioning absolut link icon */
+        }
+        .stat-title { font-weight: 700; font-size: 0.85rem; color: #444; }
+        
+        /* Ikon di Kiri */
+        .stat-icon-box { 
+            width: 35px; height: 35px; border-radius: 8px; 
+            display: flex; align-items: center; justify-content: center; 
+            color: white; font-size: 1rem; flex-shrink: 0;
+        }
+        
+        /* Link Icon di Kanan Atas Header */
+        .link-icon { 
+            position: absolute; right: 0; top: 2px;
+            color: #ccc; cursor: pointer; transition: 0.2s; 
+            font-size: 0.9rem;
+        }
+        .link-icon:hover { color: var(--primary-blue); }
+
+        .stat-main-count { font-size: 1.8rem; font-weight: 700; line-height: 1; color: #333; margin-bottom: 2px; }
+        .stat-sub-label { font-size: 0.7rem; color: #888; margin-bottom: 10px; }
+        
+        .stat-details { font-size: 0.7rem; color: #555; background: #f8f9fa; padding: 8px; border-radius: 6px; margin-top: auto; }
+        .stat-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
+        .stat-row.head { font-weight: 700; color: #aaa; text-transform: uppercase; font-size: 0.65rem; margin-top: 5px; margin-bottom: 5px; border-bottom: 1px dashed #ddd;}
+        .stat-val { font-weight: 700; color: #333; }
+
+        /* Charts Section */
+        .charts-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); display: flex; flex-direction: column; min-height: 350px; }
+        .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .chart-filter { border: 1px solid #ddd; border-radius: 20px; padding: 2px 10px; font-size: 0.75rem; outline: none; color: #555; }
+        .domicile-stats { display: flex; gap: 10px; margin-top: 15px; justify-content: center; flex-wrap: wrap;}
+        .domicile-badge { background: #f0f7ff; border: 1px solid #cce5ff; color: var(--primary-blue); padding: 5px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 500; }
+
+        /* Middle Panel (Class Info) */
+        .class-info-card { background: white; border-radius: 12px; padding: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.03); height: 100%; overflow: hidden; display: flex; flex-direction: column; border: 1px solid #eef2f6; }
+        .class-info-header { padding: 15px; border-bottom: 1px solid #eee; background: #fff; font-weight: 700; color: #444; font-size: 0.9rem; }
+        .class-info-body { overflow-y: auto; flex-grow: 1; padding: 0; }
+        
+        .jurusan-group { border-bottom: 1px solid #f0f0f0; }
+        .jurusan-header { background: #f8f9fa; padding: 8px 15px; font-size: 0.75rem; font-weight: 700; color: #666; text-transform: uppercase; letter-spacing: 0.5px; position: sticky; top: 0; }
+        .rombel-item { padding: 12px 15px; border-bottom: 1px dashed #eee; font-size: 0.75rem; }
+        .rombel-item:last-child { border-bottom: none; }
+        .rombel-name { font-weight: 700; color: var(--primary-blue); font-size: 0.85rem; margin-bottom: 2px; }
+        .wali-name { font-style: italic; color: #555; margin-bottom: 5px; display: block; }
+        .rombel-stats { display: flex; gap: 10px; color: #777; font-size: 0.7rem; background: #fff; border: 1px solid #eee; padding: 3px 8px; border-radius: 4px; width: fit-content; }
+
+        /* Night Panel */
+        .db-right-panel { 
+            background: linear-gradient(180deg, #081021 0%, #0b2b4a 60%, #1a2a4a 100%);
+            color: white; padding: 20px; text-align: center; 
+            border-radius: 12px; height: 100%; 
+            display: flex; flex-direction: column; justify-content: center; align-items: center; 
+            box-shadow: 0 4px 20px rgba(8, 16, 33, 0.5); 
+            position: relative; overflow: hidden;
+            border: 1px solid #1a2a4a;
+            transition: transform 0.3s;
+        }
+        .db-right-panel:hover { transform: scale(1.02); cursor: pointer; }
+        .mini-star { position: absolute; background: white; border-radius: 50%; opacity: 0.8; animation: twinkle 3s infinite ease-in-out; }
+        @keyframes twinkle { 0%, 100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.2); } }
+        
+        /* Helpers */
+        .bg-blue { background: var(--primary-blue); } .bg-green { background: #198754; } .bg-orange { background: #fd7e14; }
+        .text-blue { color: var(--primary-blue); } .text-green { color: #198754; } .text-orange { color: #fd7e14; }
+    </style>
+</head>
+<body>
+    <!-- HEADER -->
+    <header class="top-header">
+        <div class="d-flex align-items-center gap-4">
+            <img src="img/logo_app.png" height="32" alt="Binda">
+            <div class="header-search"><i class="fas fa-search text-muted me-2"></i><input type="text" placeholder="Pencarian"></div>
+        </div>
+        <div class="text-center">
+            <div style="font-weight:600; font-size:1rem;" id="jamHeader">00.00.00</div>
+            <div style="font-size:0.75rem; color:var(--primary-blue);" id="tglHeader">...</div>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <div class="text-end lh-1"><h6 class="m-0 fw-bold">SMK DARUL ABROR</h6><span style="font-size:0.7rem;" class="text-muted">admin</span></div>
+            <img src="img/logo_sekolah.png" height="40">
+        </div>
+    </header>
+
+    <!-- SIDEBAR -->
+    <nav class="sidebar">
+        <div class="nav flex-column">
+            <a href="beranda.html" class="nav-link active-menu"><i class="fas fa-th-large" style="width:20px;text-align:center;"></i> Beranda</a>
+            <a href="siswa.html?tab=aktif" class="nav-link"><i class="fas fa-user-graduate" style="width:20px;text-align:center;"></i> Siswa</a>
+            <a href="kaldik.html" class="nav-link"><i class="fas fa-calendar-alt" style="width:20px;text-align:center;"></i> Kaldik</a>
+            <a href="guru.html" class="nav-link"><i class="fas fa-chalkboard-teacher" style="width:20px;text-align:center;"></i> Guru</a>
+            <a href="pengaturan.html" class="nav-link"><i class="fas fa-cog" style="width:20px;text-align:center;"></i> Pengaturan</a>
+            <a href="#" class="nav-link text-danger mt-4"><i class="fas fa-power-off" style="width:20px;text-align:center;"></i> Keluar</a>
+        </div>
+    </nav>
+
+    <!-- CONTENT -->
+    <div class="main-wrapper">
+        <div class="breadcrumb-container">Buku Induk / <span>Beranda</span></div>
+        <div class="content-container">
+            
+            <div class="dashboard-grid">
+                
+                <!-- KOLOM 1: STATISTIK & GRAFIK -->
+                <div class="d-flex flex-column gap-3">
+                    <!-- Stats Cards -->
+                    <div class="stats-container mb-0">
+                        <!-- Siswa Aktif -->
+                        <div class="stat-panel">
+                            <div class="stat-header">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="stat-icon-box bg-blue"><i class="fas fa-user-graduate"></i></div>
+                                    <div class="stat-title">Siswa Aktif</div>
+                                </div>
+                                <a href="siswa.html?tab=aktif" class="link-icon" title="Lihat Detail"><i class="fas fa-external-link-alt"></i></a>
+                            </div>
+                            <div class="stat-main-count text-blue" id="val-aktif-total">0</div>
+                            <div class="stat-sub-label">Tahun Ajaran 2024/2025</div>
+                            
+                            <div class="stat-details">
+                                <div class="stat-row head">Jenis Kelamin</div>
+                                <div class="stat-row"><span>Laki-Laki</span><b id="val-aktif-l">0</b></div>
+                                <div class="stat-row"><span>Perempuan</span><b id="val-aktif-p">0</b></div>
+                                <div class="stat-row head">Domisili</div>
+                                <div class="stat-row"><span>Darul Abror</span><b id="val-aktif-da">0</b></div>
+                                <div class="stat-row"><span>Nuurul Qur'an</span><b id="val-aktif-nq">0</b></div>
+                                <div class="stat-row"><span>Rumah/Lainnya</span><b id="val-aktif-lain">0</b></div>
+                            </div>
+                        </div>
+
+                        <!-- Siswa Lulus -->
+                        <div class="stat-panel">
+                            <div class="stat-header">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="stat-icon-box bg-green"><i class="fas fa-graduation-cap"></i></div>
+                                    <div class="stat-title">Lulusan</div>
+                                </div>
+                                <a href="siswa.html?tab=lulus" class="link-icon" title="Lihat Detail"><i class="fas fa-external-link-alt"></i></a>
+                            </div>
+                            
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <div class="stat-main-count text-green" id="val-lulus-total">0</div>
+                                <select class="form-select form-select-sm" style="width:80px; font-size:0.7rem; padding:2px;" id="filterYear" onchange="updateDashboard()">
+                                    <option value="all">Semua</option>
+                                    <option value="2024">2024</option>
+                                    <option value="2023">2023</option>
+                                </select>
+                            </div>
+
+                            <div class="stat-details">
+                                <div class="stat-row head">Jenis Kelamin</div>
+                                <div class="stat-row"><span>Laki-Laki</span><b id="val-lulus-l">0</b></div>
+                                <div class="stat-row"><span>Perempuan</span><b id="val-lulus-p">0</b></div>
+                                <div class="stat-row head">Karir</div>
+                                <div class="stat-row"><span>Lanjut Studi</span><b id="val-lulus-studi">0</b></div>
+                                <div class="stat-row"><span>Bekerja/Lain</span><b id="val-lulus-kerja">0</b></div>
+                            </div>
+                        </div>
+
+                        <!-- Siswa Keluar -->
+                        <div class="stat-panel">
+                            <div class="stat-header">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="stat-icon-box bg-orange"><i class="fas fa-sign-out-alt"></i></div>
+                                    <div class="stat-title">Siswa Keluar</div>
+                                </div>
+                                <a href="siswa.html?tab=keluar" class="link-icon" title="Lihat Detail"><i class="fas fa-external-link-alt"></i></a>
+                            </div>
+                            <div class="stat-main-count text-orange" id="val-keluar-total">0</div>
+                            <div class="stat-sub-label">Mutasi & DO</div>
+
+                            <div class="stat-details">
+                                <div class="stat-row head">Keterangan</div>
+                                <div class="stat-row"><span>Pindah Sekolah</span><b id="val-out-pindah">0</b></div>
+                                <div class="stat-row"><span>Mengundurkan Diri</span><b id="val-out-undur">0</b></div>
+                                <div class="stat-row"><span>Dikeluarkan (DO)</span><b id="val-out-do">0</b></div>
+                                <div class="stat-row head">Domisili</div>
+                                <div class="stat-row"><span>Pondok</span><b id="val-out-pondok">0</b></div>
+                                <div class="stat-row"><span>Rumah</span><b id="val-out-rumah">0</b></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts Card -->
+                    <div class="charts-card flex-grow-1">
+                        <div class="chart-header">
+                            <h6 class="fw-bold text-primary m-0">Grafik Data Siswa <span id="chart-year-label">Semua Tahun</span></h6>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-primary fs-6" id="chart-total-label">Total: 0</span>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-around align-items-center flex-grow-1">
+                            <div style="width: 40%; position:relative;">
+                                <canvas id="chartGender"></canvas>
+                            </div>
+                            <div style="width: 40%; position:relative;">
+                                <canvas id="chartMajor"></canvas>
+                            </div>
+                        </div>
+                        <div class="domicile-stats">
+                            <span class="domicile-badge"><i class="fas fa-mosque me-1"></i> Darul Abror: <b id="chart-stat-da">0</b></span>
+                            <span class="domicile-badge"><i class="fas fa-quran me-1"></i> Nuurul Qur'an: <b id="chart-stat-nq">0</b></span>
+                            <span class="domicile-badge"><i class="fas fa-home me-1"></i> Rumah/Lain: <b id="chart-stat-lain">0</b></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KOLOM 2: INFO KELAS & WALI (TENGAH) -->
+                <div class="class-info-card">
+                    <div class="class-info-header d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-chalkboard-teacher me-2 text-primary"></i> Data Kelas & Wali</span>
+                        <i class="fas fa-ellipsis-v text-muted" style="cursor:pointer;"></i>
+                    </div>
+                    <div class="class-info-body" id="classInfoContainer">
+                        <!-- Generated by JS -->
+                    </div>
+                </div>
+
+                <!-- KOLOM 3: PANEL MALAM (KANAN) -->
+                <div class="h-100">
+                    <a href="malam.html" style="text-decoration:none;">
+                        <div class="db-right-panel" id="nightWidget">
+                            <img src="img/logo_sekolah.png" width="70" class="mb-3" style="filter: drop-shadow(0 0 10px rgba(255,255,255,0.3));">
+                            <h5 class="fw-bold mb-1" style="letter-spacing:1px; font-size:0.9rem;">DARUL ABROR</h5>
+                            <div class="small opacity-75 mb-4" style="font-size:0.7rem;">Mode Hening</div>
+                            <div style="font-size:2.5rem; font-weight:700; line-height:1; text-shadow:0 0 20px rgba(255,255,255,0.5);" id="jamBig">...</div>
+                            <div class="mt-3 small px-3 py-1 rounded-pill" style="background:rgba(255,255,255,0.1); backdrop-filter:blur(5px); border:1px solid rgba(255,255,255,0.2); font-size:0.7rem;" id="tglBig">...</div>
+                        </div>
+                    </a>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DATA DUMMY ---
+        const students = [
+            // Aktif
+            {id:1, nama:"Ahmad Zaki", gender:"L", status:"Aktif", domisili:"Darul Abror", jurusan:"DKV", kelas:"X DKV 1"},
+            {id:2, nama:"Budi Santoso", gender:"L", status:"Aktif", domisili:"Nuurul Qur'an", jurusan:"TKJ", kelas:"X TKJ 1"},
+            {id:3, nama:"Citra Kirana", gender:"P", status:"Aktif", domisili:"Darul Abror", jurusan:"DKV", kelas:"XI DKV 1"},
+            {id:4, nama:"Dewi Ayu", gender:"P", status:"Aktif", domisili:"Rumah", jurusan:"TKJ", kelas:"X TKJ 1"},
+            {id:5, nama:"Eko Prasetyo", gender:"L", status:"Aktif", domisili:"Rumah", jurusan:"DKV", kelas:"XII DKV 1"},
+            {id:6, nama:"Fajar Siddiq", gender:"L", status:"Aktif", domisili:"Nuurul Qur'an", jurusan:"TKJ", kelas:"XI TKJ 1"},
+            {id:7, nama:"Gita Gutawa", gender:"P", status:"Aktif", domisili:"Darul Abror", jurusan:"DKV", kelas:"X DKV 2"},
+            {id:8, nama:"Hadi Sucipto", gender:"L", status:"Aktif", domisili:"Pondok Lain", jurusan:"TKJ", kelas:"XII TKJ 1"},
+            // Lulus
+            {id:9, nama:"Indah Permata", gender:"P", status:"Lulus", domisili:"Darul Abror", lulusan:"2024", lanjut:true},
+            {id:10, nama:"Joko Anwar", gender:"L", status:"Lulus", domisili:"Rumah", lulusan:"2024", lanjut:false},
+            {id:11, nama:"Kartika Putri", gender:"P", status:"Lulus", domisili:"Darul Abror", lulusan:"2023", lanjut:true},
+            {id:12, nama:"Lukman Hakim", gender:"L", status:"Lulus", domisili:"Rumah", lulusan:"2023", lanjut:false},
+            // Keluar
+            {id:13, nama:"Nanda Putra", gender:"L", status:"Keluar", domisili:"Rumah", alasan:"Pindah"},
+            {id:14, nama:"Oki Setiana", gender:"P", status:"Keluar", domisili:"Darul Abror", alasan:"Mengundurkan Diri"},
+            {id:15, nama:"Putra Siregar", gender:"L", status:"Keluar", domisili:"Rumah", alasan:"Dikeluarkan"}
+        ];
+
+        // Data Wali Kelas (Simulasi dari Pengaturan)
+        const waliKelasData = {
+            "X DKV 1": "Burhanudin, S.Pd.",
+            "X DKV 2": "Fatmawati, S.Pd.",
+            "XI DKV 1": "Ahmad Zaky, S.T.",
+            "XII DKV 1": "Siti Aminah, S.Pd.",
+            "X TKJ 1": "Dewi Sartika, S.Kom.",
+            "XI TKJ 1": "Budi Raharjo, S.Kom.",
+            "XII TKJ 1": "Rina Nose, S.Pd."
+        };
+
+        // --- CHART INSTANCES ---
+        let chartGender = null;
+        let chartMajor = null;
+
+        document.addEventListener("DOMContentLoaded", function() {
+            updateDashboard();
+            updateClock();
+            generateStars();
+        });
+
+        function updateDashboard() {
+            const yearFilter = document.getElementById('filterYear').value;
+            
+            // 1. SISWA AKTIF STATS
+            const active = students.filter(s => s.status === 'Aktif');
+            document.getElementById('val-aktif-total').innerText = active.length;
+            document.getElementById('val-aktif-l').innerText = active.filter(s => s.gender === 'L').length;
+            document.getElementById('val-aktif-p').innerText = active.filter(s => s.gender === 'P').length;
+            document.getElementById('val-aktif-da').innerText = active.filter(s => s.domisili === 'Darul Abror').length;
+            document.getElementById('val-aktif-nq').innerText = active.filter(s => s.domisili === "Nuurul Qur'an").length;
+            document.getElementById('val-aktif-lain').innerText = active.filter(s => !['Darul Abror', "Nuurul Qur'an"].includes(s.domisili)).length;
+
+            // 2. SISWA LULUS STATS (Filtered)
+            const lulus = students.filter(s => s.status === 'Lulus' && (yearFilter === 'all' || s.lulusan === yearFilter));
+            document.getElementById('val-lulus-total').innerText = lulus.length;
+            document.getElementById('val-lulus-l').innerText = lulus.filter(s => s.gender === 'L').length;
+            document.getElementById('val-lulus-p').innerText = lulus.filter(s => s.gender === 'P').length;
+            document.getElementById('val-lulus-studi').innerText = lulus.filter(s => s.lanjut).length;
+            document.getElementById('val-lulus-kerja').innerText = lulus.filter(s => !s.lanjut).length;
+
+            // 3. SISWA KELUAR STATS
+            const keluar = students.filter(s => s.status === 'Keluar');
+            document.getElementById('val-keluar-total').innerText = keluar.length;
+            document.getElementById('val-out-pindah').innerText = keluar.filter(s => s.alasan === 'Pindah').length;
+            document.getElementById('val-out-undur').innerText = keluar.filter(s => s.alasan === 'Mengundurkan Diri').length;
+            document.getElementById('val-out-do').innerText = keluar.filter(s => s.alasan === 'Dikeluarkan').length;
+            document.getElementById('val-out-pondok').innerText = keluar.filter(s => ['Darul Abror', "Nuurul Qur'an"].includes(s.domisili)).length;
+            document.getElementById('val-out-rumah').innerText = keluar.filter(s => !['Darul Abror', "Nuurul Qur'an"].includes(s.domisili)).length;
+
+            // 4. CHARTS & TOTAL HEADER
+            document.getElementById('chart-total-label').innerText = `Total: ${active.length}`;
+            document.getElementById('chart-year-label').innerText = "Tahun Ajaran 2024/2025";
+            
+            // Domicile Badges for Charts
+            document.getElementById('chart-stat-da').innerText = active.filter(s => s.domisili === 'Darul Abror').length;
+            document.getElementById('chart-stat-nq').innerText = active.filter(s => s.domisili === "Nuurul Qur'an").length;
+            document.getElementById('chart-stat-lain').innerText = active.filter(s => !['Darul Abror', "Nuurul Qur'an"].includes(s.domisili)).length;
+
+            renderCharts(active);
+
+            // 5. CLASS INFO LIST
+            renderClassInfo(active);
+        }
+
+        function renderCharts(data) {
+            const l = data.filter(s => s.gender === 'L').length;
+            const p = data.filter(s => s.gender === 'P').length;
+            const dkv = data.filter(s => s.jurusan === 'DKV').length;
+            const tkj = data.filter(s => s.jurusan === 'TKJ').length;
+
+            const commonOpts = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { boxWidth: 10, font: {size: 9} } },
+                    datalabels: { color: '#fff', font: {weight: 'bold'}, formatter: (val, ctx) => {
+                        let sum = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                        let percentage = (val*100 / sum).toFixed(0)+"%";
+                        return percentage;
+                    }}
+                }
+            };
+
+            // Gender Chart
+            if (chartGender) chartGender.destroy();
+            chartGender = new Chart(document.getElementById('chartGender'), {
+                type: 'pie',
+                data: { labels: ['Laki-Laki', 'Perempuan'], datasets: [{ data: [l, p], backgroundColor: ['#0d6efd', '#e63737'] }] },
+                options: commonOpts,
+                plugins: [ChartDataLabels]
+            });
+
+            // Major Chart
+            if (chartMajor) chartMajor.destroy();
+            chartMajor = new Chart(document.getElementById('chartMajor'), {
+                type: 'pie',
+                data: { labels: ['DKV', 'TKJ'], datasets: [{ data: [dkv, tkj], backgroundColor: ['#6610f2', '#fd7e14'] }] },
+                options: commonOpts,
+                plugins: [ChartDataLabels]
+            });
+        }
+
+        function renderClassInfo(data) {
+            const container = document.getElementById('classInfoContainer');
+            container.innerHTML = '';
+
+            // Group by Jurusan
+            const majors = ['DKV', 'TKJ']; // Bisa dinamis dari data
+            
+            majors.forEach(major => {
+                // Header Jurusan
+                let html = `<div class="jurusan-group"><div class="jurusan-header">${major == 'DKV' ? 'Desain Komunikasi Visual' : 'Teknik Komputer Jaringan'} (${major})</div>`;
+                
+                // Get Classes for this Major
+                // Filter unik nama kelas yang mengandung jurusan ini
+                const classes = [...new Set(data.filter(s => s.jurusan === major).map(s => s.kelas))].sort();
+
+                classes.forEach(cls => {
+                    const studentsInClass = data.filter(s => s.kelas === cls);
+                    const l = studentsInClass.filter(s => s.gender === 'L').length;
+                    const p = studentsInClass.filter(s => s.gender === 'P').length;
+                    const wali = waliKelasData[cls] || "Belum diatur";
+
+                    html += `
+                    <div class="rombel-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="rombel-name">${cls}</div>
+                            <span class="badge bg-light text-dark border">${studentsInClass.length} Siswa</span>
+                        </div>
+                        <span class="wali-name">${wali}</span>
+                        <div class="rombel-stats">
+                            <span>L: <b>${l}</b></span>
+                            <span style="border-left:1px solid #ddd; padding-left:10px;">P: <b>${p}</b></span>
+                        </div>
+                    </div>`;
+                });
+
+                html += `</div>`;
+                container.innerHTML += html;
+            });
+        }
+
+        function updateClock() {
+            setInterval(()=>{
+                const n=new Date();
+                document.getElementById('jamHeader').innerText = n.toLocaleTimeString('en-GB').replace(/:/g,'.');
+                document.getElementById('tglHeader').innerText = n.toLocaleDateString('id-ID', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+                document.getElementById('jamBig').innerText = String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
+                document.getElementById('tglBig').innerText = n.toLocaleDateString('id-ID', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+            }, 1000);
+        }
+
+        function generateStars() {
+            const widget = document.getElementById('nightWidget');
+            for(let i=0; i<30; i++) {
+                const star = document.createElement('div');
+                star.className = 'mini-star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.width = Math.random() * 2 + 1 + 'px';
+                star.style.height = star.style.width;
+                star.style.animationDelay = Math.random() * 2 + 's';
+                widget.appendChild(star);
+            }
+        }
+    </script>
+</body>
+</html>

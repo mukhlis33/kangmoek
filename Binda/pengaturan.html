@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Binda - Pengaturan</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Load Font Standar -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto&family=Open+Sans&family=Lato&family=Montserrat&family=Oswald&family=Raleway&family=Merriweather&family=Playfair+Display&family=Nunito&family=Ubuntu&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #0d6efd;
+            --bg-body: #f4f6f9;
+            --bg-card: #ffffff;
+            --text-main: #333333;
+            --text-muted: #6c757d;
+            --border: #e9ecef;
+            --sidebar-width: 240px;
+            --header-height: 65px;
+        }
+
+        /* TEMA */
+        [data-theme="dark"] { --primary: #3b82f6; --bg-body: #121212; --bg-card: #1e1e1e; --text-main: #e0e0e0; --text-muted: #a0a0a0; --border: #333333; }
+        [data-theme="sepia"] { --primary: #8d6e63; --bg-body: #f4ecd8; --bg-card: #fffdf5; --text-main: #5b4636; --text-muted: #8d7b68; --border: #d7ccc8; }
+        [data-theme="contrast"] { --primary: #ffff00; --bg-body: #000000; --bg-card: #000000; --text-main: #ffffff; --text-muted: #ffffff; --border: #ffffff; }
+        /* Custom Theme Override handled by JS style injection */
+
+        [data-theme="contrast"] .btn-primary { background: #000; color: #ff0; border: 2px solid #ff0; }
+        [data-theme="contrast"] .nav-link.active-menu { background: #ff0; color: #000; font-weight: bold; }
+
+        body { font-family: 'Poppins', sans-serif; background-color: var(--bg-body); color: var(--text-main); font-size: 0.85rem; overflow: hidden; height: 100vh; margin: 0; }
+
+        /* LAYOUT */
+        .top-header { background: var(--bg-card); height: var(--header-height); display: flex; align-items: center; justify-content: space-between; padding: 0 25px; border-bottom: 1px solid var(--border); position: fixed; top: 0; left: 0; right: 0; z-index: 1000; }
+        .sidebar { width: var(--sidebar-width); background: var(--bg-card); position: fixed; top: var(--header-height); bottom: 0; left: 0; padding-top: 20px; border-right: 1px solid var(--border); overflow-y: auto; z-index: 900; }
+        .main-wrapper { margin-left: var(--sidebar-width); margin-top: var(--header-height); height: calc(100vh - var(--header-height)); display: flex; flex-direction: column; }
+        .breadcrumb-container { padding: 12px 30px; background: var(--bg-body); font-weight: 500; color: var(--text-muted); flex-shrink: 0; border-bottom: 1px solid var(--border); }
+        .breadcrumb-container span { color: var(--primary); }
+        .content-container { padding: 20px 30px; flex-grow: 1; overflow-y: auto; height: 100%; }
+
+        /* HEADER SEARCH (NEW) */
+        .header-left { display: flex; align-items: center; gap: 30px; width: 300px; }
+        .header-search { display: flex; align-items: center; gap: 10px; background: var(--bg-body); padding: 6px 15px; border-radius: 20px; border: 1px solid var(--border); }
+        .header-search input { border: none; background: transparent; outline: none; font-size: 0.85rem; color: var(--text-muted); width: 180px; }
+
+        .header-center { text-align: center; }
+        .clock-time { font-weight: 600; font-size: 1rem; color: var(--text-main); }
+        .clock-date { font-size: 0.75rem; color: var(--primary); font-weight: 500; }
+
+        .header-right { display: flex; align-items: center; gap: 15px; width: 300px; justify-content: flex-end; }
+        .school-info h6 { margin: 0; font-weight: 700; font-size: 0.9rem; color: var(--text-main); }
+        .school-info span { font-size: 0.7rem; color: var(--text-muted); }
+
+        /* COMPONENTS */
+        .nav-link { color: var(--text-muted); padding: 12px 25px; display: flex; align-items: center; gap: 10px; text-decoration: none; font-weight: 500; transition: 0.2s; }
+        .nav-link:hover { color: var(--primary); background: rgba(0,0,0,0.05); }
+        .nav-link.active-menu { background: var(--primary); color: white; border-radius: 0 50px 50px 0; margin-right: 15px; }
+        .card-custom { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+        .form-label { font-weight: 600; font-size: 0.8rem; margin-bottom: 5px; color: var(--text-main); }
+        .form-control, .form-select { font-size: 0.85rem; background-color: var(--bg-body); color: var(--text-main); border: 1px solid var(--border); }
+        .form-control:focus { background-color: var(--bg-card); color: var(--text-main); border-color: var(--primary); }
+
+        /* SETTINGS LAYOUT */
+        .settings-layout { display: flex; gap: 20px; height: 100%; }
+        .settings-nav { width: 240px; flex-shrink: 0; }
+        .settings-content { flex-grow: 1; overflow-y: auto; padding-right: 5px; }
+        
+        .settings-pill { display: block; padding: 12px 15px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; color: var(--text-muted); text-decoration: none; font-weight: 500; transition: 0.2s; }
+        .settings-pill:hover { border-color: var(--primary); color: var(--primary); }
+        .settings-pill.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .settings-pill i { width: 25px; text-align: center; }
+
+        /* KOP PREVIEW */
+        .kop-preview-box { border: 2px dashed var(--border); padding: 15px; text-align: center; margin-bottom: 15px; background: white; color: #000; min-height: 120px; display: flex; flex-direction: column; justify-content: center; }
+        .kop-line { line-height: 1.2; }
+
+        /* THEME CARDS */
+        .theme-card { cursor: pointer; border: 2px solid var(--border); border-radius: 8px; overflow: hidden; transition: 0.2s; position: relative; height: 100%; }
+        .theme-card:hover { transform: translateY(-3px); }
+        .theme-card.selected { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(13,110,253,0.1); }
+        .theme-card.selected::after { content: '\f00c'; font-family: "Font Awesome 6 Free"; font-weight: 900; position: absolute; top: 5px; right: 5px; background: var(--primary); color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; }
+
+        /* STIRCT CONFIRMATION MODAL */
+        .confirm-input { text-align: center; letter-spacing: 1px; font-weight: bold; }
+        .confirm-input:focus { border-color: #dc3545; box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25); }
+    </style>
+</head>
+<body>
+
+    <!-- HEADER (UPDATED: TEXT BOX PENCARIAN) -->
+    <header class="top-header">
+        <div class="header-left">
+            <img src="img/logo_app.png" height="32" alt="Binda">
+            <!-- Text Box Pencarian -->
+            <div class="header-search">
+                <i class="fas fa-search text-muted"></i>
+                <input type="text" placeholder="Pencarian">
+            </div>
+        </div>
+
+        <div class="header-center">
+            <div class="clock-time" id="jamHeader">00.00.00</div>
+            <div class="clock-date" id="tglHeader">...</div>
+        </div>
+
+        <div class="header-right">
+            <div class="school-info text-end">
+                <h6 class="m-0 fw-bold school-name-display">SMK DARUL ABROR</h6>
+                <span class="text-muted">Administrator</span>
+            </div>
+            <img src="img/logo_sekolah.png" height="40" class="school-logo-display">
+        </div>
+    </header>
+
+    <!-- SIDEBAR -->
+    <nav class="sidebar">
+        <div class="nav flex-column">
+            <a href="beranda.html" class="nav-link"><i class="fas fa-th-large"></i> Beranda</a>
+            <a href="siswa.html" class="nav-link"><i class="fas fa-user-graduate"></i> Siswa</a>
+            <a href="kaldik.html" class="nav-link"><i class="fas fa-calendar-alt"></i> Kaldik</a>
+            <a href="guru.html" class="nav-link"><i class="fas fa-chalkboard-teacher"></i> Guru</a>
+            <a href="pengaturan.html" class="nav-link active-menu"><i class="fas fa-cog"></i> Pengaturan</a>
+            <a href="#" class="nav-link text-danger mt-4"><i class="fas fa-power-off"></i> Keluar</a>
+        </div>
+    </nav>
+
+    <!-- CONTENT -->
+    <div class="main-wrapper">
+        <div class="breadcrumb-container">Buku Induk / <span>Pengaturan</span></div>
+        <div class="content-container">
+            
+            <div class="settings-layout">
+                <!-- MENU KIRI -->
+                <div class="settings-nav">
+                    <h6 class="fw-bold mb-3 ps-2" style="color:var(--primary);">Menu Pengaturan</h6>
+                    <div class="nav flex-column nav-pills" id="v-pills-tab" role="tablist">
+                        <button class="settings-pill active" data-bs-toggle="pill" data-bs-target="#tab-profil"><i class="fas fa-school"></i> Profil & KOP</button>
+                        <button class="settings-pill" data-bs-toggle="pill" data-bs-target="#tab-jurusan"><i class="fas fa-sitemap"></i> Jurusan & Rombel</button>
+                        <button class="settings-pill" data-bs-toggle="pill" data-bs-target="#tab-wali" onclick="loadWaliKelasData()"><i class="fas fa-user-tie"></i> Wali Kelas</button>
+                        <button class="settings-pill" data-bs-toggle="pill" data-bs-target="#tab-kustom"><i class="fas fa-palette"></i> Kustomisasi</button>
+                    </div>
+                </div>
+
+                <!-- KONTEN KANAN -->
+                <div class="settings-content">
+                    <div class="tab-content" id="v-pills-tabContent">
+                        
+                        <!-- 1. PROFIL & KOP -->
+                        <div class="tab-pane fade show active" id="tab-profil">
+                            <div class="card-custom">
+                                <h5 class="fw-bold mb-4 border-bottom pb-2">Profil Sekolah</h5>
+                                <div class="row g-3">
+                                    <div class="col-md-3 text-center">
+                                        <div class="border p-2 rounded mb-2 bg-white"><img src="img/logo_sekolah.png" height="80" class="school-logo-display"></div>
+                                        <label class="btn btn-sm btn-outline-primary w-100">Upload Logo <input type="file" hidden onchange="previewLogo(this)"></label>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <div class="mb-3">
+                                            <label class="form-label">Nama Sekolah (Header Aplikasi)</label>
+                                            <input type="text" id="inpNamaSekolah" class="form-control" value="SMK DARUL ABROR" oninput="updateProfilLive()">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Nama Kepala Sekolah</label>
+                                            <input type="text" id="inpKepsek" class="form-control" placeholder="Nama Lengkap & Gelar">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card-custom">
+                                <h5 class="fw-bold mb-3 border-bottom pb-2">Pengaturan KOP Surat</h5>
+                                <div class="kop-preview-box shadow-sm">
+                                    <div class="d-flex align-items-center justify-content-center gap-3">
+                                        <img src="img/logo_sekolah.png" height="80" class="school-logo-display">
+                                        <div style="flex-grow: 1;" id="kopPreviewText"></div>
+                                        <img src="img/logo_app.png" height="80" style="opacity:0;"> 
+                                    </div>
+                                    <div style="border-bottom: 3px double #000; margin-top:10px;"></div>
+                                </div>
+                                <div class="accordion" id="kopBuilder"></div>
+                            </div>
+                        </div>
+
+                        <!-- 2. JURUSAN & ROMBEL -->
+                        <div class="tab-pane fade" id="tab-jurusan">
+                            <!-- Jurusan -->
+                            <div class="card-custom">
+                                <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                                    <h5 class="fw-bold m-0">Data Jurusan</h5>
+                                    <!-- Tombol Tambah Jurusan Hanya Ikon -->
+                                    <button class="btn btn-primary btn-sm rounded-circle" style="width:30px; height:30px; padding:0;" onclick="askAddJurusan()"><i class="fas fa-plus"></i></button>
+                                </div>
+                                <table class="table table-bordered table-sm bg-white">
+                                    <thead class="table-light"><tr><th>No</th><th>Singkatan</th><th>Nama Lengkap</th><th class="text-center">Aksi</th></tr></thead>
+                                    <tbody id="tblJurusan"></tbody>
+                                </table>
+                            </div>
+
+                            <!-- Rombel Generator -->
+                            <div class="card-custom">
+                                <h5 class="fw-bold mb-3 border-bottom pb-2">Generator Rombel</h5>
+                                <div class="row align-items-end g-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">Tingkat</label>
+                                        <select class="form-select" id="rombelTingkat"><option value="X">Kelas X</option><option value="XI">Kelas XI</option><option value="XII">Kelas XII</option></select>
+                                    </div>
+                                    <div class="col-md-4"><label class="form-label">Jurusan</label><select class="form-select" id="rombelJurusan"></select></div>
+                                    <div class="col-md-2"><label class="form-label">Jml Kelas</label><input type="number" id="rombelCount" class="form-control" value="1" min="1" max="10"></div>
+                                    <div class="col-md-3"><button class="btn btn-success w-100" onclick="askGenerateRombel()">Generate</button></div>
+                                </div>
+                                <hr>
+                                <div class="d-flex flex-wrap gap-2" id="listRombel"></div>
+                            </div>
+                        </div>
+
+                        <!-- 3. WALI KELAS -->
+                        <div class="tab-pane fade" id="tab-wali">
+                            <div class="card-custom">
+                                <h5 class="fw-bold mb-3 border-bottom pb-2">Atur Wali Kelas</h5>
+                                <div id="waliKelasContainer"></div>
+                            </div>
+                        </div>
+
+                        <!-- 4. KUSTOMISASI -->
+                        <div class="tab-pane fade" id="tab-kustom">
+                            <div class="card-custom">
+                                <h5 class="fw-bold mb-4 border-bottom pb-2">Kustomisasi Tampilan</h5>
+                                <div class="row g-3 mb-4">
+                                    <div class="col-6 col-md-4">
+                                        <div class="theme-card p-3 text-center active" onclick="setAppTheme('light', this)" id="themeOpt-light">
+                                            <div class="bg-white border mb-2 mx-auto" style="width:40px; height:40px; border-radius:50%;"></div>
+                                            <div class="fw-bold small">Cerah (Default)</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-4">
+                                        <div class="theme-card p-3 text-center" onclick="setAppTheme('dark', this)" id="themeOpt-dark">
+                                            <div style="background:#121212; width:40px; height:40px; border-radius:50%; border:1px solid #333;" class="mx-auto mb-2"></div>
+                                            <div class="fw-bold small">Gelap</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-4">
+                                        <div class="theme-card p-3 text-center" onclick="setAppTheme('sepia', this)" id="themeOpt-sepia">
+                                            <div style="background:#f4ecd8; width:40px; height:40px; border-radius:50%; border:1px solid #d7ccc8;" class="mx-auto mb-2"></div>
+                                            <div class="fw-bold small">Sepia Tone</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-4">
+                                        <div class="theme-card p-3 text-center" onclick="setAppTheme('contrast', this)" id="themeOpt-contrast">
+                                            <div style="background:#000; border:2px solid yellow; width:40px; height:40px; border-radius:50%;" class="mx-auto mb-2"></div>
+                                            <div class="fw-bold small">Kontras Tinggi</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-4">
+                                        <div class="theme-card p-3 text-center" onclick="setAppTheme('system', this)" id="themeOpt-system">
+                                            <i class="fas fa-desktop fs-2 mb-2 text-muted"></i>
+                                            <div class="fw-bold small">Sistem Default</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-4">
+                                        <div class="theme-card p-3 text-center" onclick="setAppTheme('custom', this)" id="themeOpt-custom">
+                                            <i class="fas fa-palette fs-2 mb-2 text-primary"></i>
+                                            <div class="fw-bold small">Kustom</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div id="customColorWrapper" style="display: none;">
+                                    <h6 class="fw-bold mb-3">Warna Aksen (Khusus Mode Kustom)</h6>
+                                    <div class="d-flex align-items-center gap-3 bg-light p-3 rounded">
+                                        <input type="color" class="form-control form-control-color" id="accentColorPicker" value="#0d6efd" onchange="setCustomAccent(this.value)">
+                                        <span class="small text-muted">Pilih warna untuk tombol dan menu aktif.</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL STRICT CONFIRMATION -->
+    <div class="modal fade" id="confirmModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white py-2">
+                    <h6 class="modal-title fw-bold"><i class="fas fa-exclamation-triangle"></i> Konfirmasi Tindakan</h6>
+                    <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <p class="small mb-2">Tindakan ini sensitif. Ketik <b>"konfirmasi"</b> untuk melanjutkan.</p>
+                    <input type="text" id="confirmInput" class="form-control form-control-sm confirm-input mb-3" placeholder="ketik disini..." oninput="checkConfirmInput()">
+                    <button id="confirmBtn" class="btn btn-danger btn-sm w-100" disabled onclick="executeAction()">Lanjutkan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL EDIT/ADD JURUSAN -->
+    <div class="modal fade" id="modalJurusan" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header py-2">
+                    <h6 class="modal-title fw-bold" id="modalJurusanTitle">Tambah Jurusan</h6>
+                    <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="jurIdEdit">
+                    <label class="form-label small">Nama Jurusan</label>
+                    <input type="text" id="inputJurNama" class="form-control mb-2">
+                    <label class="form-label small">Singkatan</label>
+                    <input type="text" id="inputJurSingkat" class="form-control mb-2">
+                </div>
+                <div class="modal-footer py-2">
+                    <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+                    <button class="btn btn-primary btn-sm" onclick="saveJurusan()">Simpan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // --- DATA UTAMA ---
+        let db = {
+            jurusan: JSON.parse(localStorage.getItem('binda_jurusan')) || [],
+            rombel: JSON.parse(localStorage.getItem('binda_rombel')) || [],
+            wali: JSON.parse(localStorage.getItem('binda_wali')) || {},
+            kop: JSON.parse(localStorage.getItem('binda_kop')) || [
+                {text:'PEMERINTAH PROVINSI JAWA TENGAH', font:'Arial', size:'14', bold:true, italic:false, color:'#000000'},
+                {text:'DINAS PENDIDIKAN DAN KEBUDAYAAN', font:'Arial', size:'14', bold:true, italic:false, color:'#000000'},
+                {text:'SEKOLAH MENENGAH KEJURUAN DARUL ABROR', font:'Times New Roman', size:'20', bold:true, italic:false, color:'#000000'},
+                {text:'Jl. Raya Bukateja - Purbalingga Km. 25', font:'Courier New', size:'10', bold:false, italic:true, color:'#333333'},
+                {text:'Website: www.smkdarulabror.sch.id | Email: info@smkdarulabror.sch.id', font:'Verdana', size:'9', bold:false, italic:false, color:'#333333'}
+            ],
+            theme: localStorage.getItem('binda_theme') || 'light',
+            accent: localStorage.getItem('binda_accent') || '#0d6efd'
+        };
+
+        // --- DAFTAR FONT LENGKAP (75+) ---
+        const fontList = [
+            "Arial", "Times New Roman", "Courier New", "Verdana", "Tahoma", "Trebuchet MS", "Georgia", "Garamond", "Brush Script MT", "Arial Black", "Impact",
+            "Lucida Sans Unicode", "Palatino Linotype", "Book Antiqua", "Arial Narrow", "Century Gothic", "Franklin Gothic Medium", "Copperplate", "Papyrus",
+            "Comic Sans MS", "Consolas", "Cambria", "Calibri", "Candara", "Segoe UI", "Optima", "Didot", "American Typewriter", "Andale Mono", "Baskerville",
+            "Big Caslon", "Bodoni MT", "Bookman Old Style", "Calisto MT", "Castellar", "Century Schoolbook", "Constantia", "Copperplate Gothic", "Corbel",
+            "Curlz MT", "Edwardian Script ITC", "Elephant", "Engravers MT", "Eras Bold ITC", "Felix Titling", "Forte", "Franklin Gothic Book", "Freestyle Script",
+            "French Script MT", "Gabriola", "Gigi", "Gill Sans MT", "Gloucester MT Extra Condensed", "Goudy Old Style", "Haettenschweiler", "Harlow Solid Italic",
+            "Harrington", "High Tower Text", "Imprint MT Shadow", "Informal Roman", "Jokerman", "Kristen ITC", "Kunstler Script", "Lucida Bright", "Lucida Calligraphy",
+            "Lucida Console", "Lucida Fax", "Magneto", "Maiandra GD", "Matura MT Script Capitals", "Mistral", "Modern No. 20", "Monotype Corsiva", "Niagara Engraved",
+            "Onyx", "Parchment", "Perpetua", "Playbill", "Poor Richard", "Pristina", "Rage Italic", "Ravie", "Rockwell", "Script MT Bold", "Showcard Gothic",
+            "Snap ITC", "Stencil", "Tempus Sans ITC", "Viner Hand ITC", "Vivaldi", "Vladimir Script", "Wide Latin", "Aptos", "Roboto", "Open Sans", "Lato", "Montserrat", "Oswald", "Raleway"
+        ].sort();
+
+        // --- INIT ---
+        document.addEventListener("DOMContentLoaded", () => {
+            renderKopBuilder();
+            renderKopPreview();
+            renderJurusanTable();
+            renderRombelBadges();
+            updateJurusanDropdown();
+            applyTheme(db.theme, db.accent);
+            updateClock();
+            
+            document.getElementById('inpNamaSekolah').value = localStorage.getItem('binda_nama_sekolah') || 'SMK DARUL ABROR';
+            document.querySelectorAll('.school-name-display').forEach(el => el.innerText = document.getElementById('inpNamaSekolah').value);
+        });
+
+        // --- CLOCK ---
+        function updateClock() {
+            const n = new Date();
+            document.getElementById('jamHeader').innerText = n.toLocaleTimeString('en-GB').replace(/:/g,'.');
+            document.getElementById('tglHeader').innerText = n.toLocaleDateString('id-ID', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+        }
+        setInterval(updateClock, 1000);
+
+        // --- STRICT CONFIRMATION LOGIC ---
+        let pendingAction = null;
+        function requestConfirmation(action) {
+            pendingAction = action;
+            document.getElementById('confirmInput').value = '';
+            document.getElementById('confirmBtn').disabled = true;
+            new bootstrap.Modal(document.getElementById('confirmModal')).show();
+        }
+        function checkConfirmInput() {
+            const val = document.getElementById('confirmInput').value;
+            document.getElementById('confirmBtn').disabled = (val !== 'konfirmasi');
+        }
+        function executeAction() {
+            if(pendingAction) pendingAction();
+            const modal = bootstrap.Modal.getInstance(document.getElementById('confirmModal'));
+            modal.hide();
+            pendingAction = null;
+        }
+
+        // --- 1. PROFIL & KOP ---
+        function updateProfilLive() {
+            const val = document.getElementById('inpNamaSekolah').value;
+            localStorage.setItem('binda_nama_sekolah', val);
+            document.querySelectorAll('.school-name-display').forEach(el => el.innerText = val);
+        }
+        function previewLogo(input) {
+            if(input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) { document.querySelectorAll('.school-logo-display').forEach(img => img.src = e.target.result); }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+        function renderKopBuilder() {
+            const container = document.getElementById('kopBuilder');
+            container.innerHTML = '';
+            
+            let fontOpts = '';
+            fontList.forEach(f => fontOpts += `<option value="${f}">${f}</option>`);
+
+            db.kop.forEach((line, idx) => {
+                const html = `
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed py-2" type="button" data-bs-toggle="collapse" data-bs-target="#kopRow${idx}">Baris ${idx+1}: <span class="ms-2 fw-normal text-truncate">${line.text}</span></button>
+                    </h2>
+                    <div id="kopRow${idx}" class="accordion-collapse collapse" data-bs-parent="#kopBuilder">
+                        <div class="accordion-body bg-light">
+                            <div class="mb-2"><input type="text" class="form-control form-control-sm" value="${line.text}" oninput="updateKopData(${idx}, 'text', this.value)"></div>
+                            <div class="row g-2">
+                                <div class="col-4">
+                                    <select class="form-select form-select-sm" onchange="updateKopData(${idx}, 'font', this.value)">
+                                        <option value="${line.font}" selected>${line.font}</option>
+                                        ${fontOpts}
+                                    </select>
+                                </div>
+                                <div class="col-2"><input type="color" class="form-control form-control-color form-control-sm w-100" value="${line.color}" oninput="updateKopData(${idx}, 'color', this.value)"></div>
+                                <div class="col-2"><input type="number" class="form-control form-control-sm" value="${line.size}" oninput="updateKopData(${idx}, 'size', this.value)"></div>
+                                <div class="col-4 d-flex align-items-center gap-2">
+                                    <div class="form-check"><input class="form-check-input" type="checkbox" ${line.bold?'checked':''} onchange="updateKopData(${idx}, 'bold', this.checked)"><label class="form-check-label small fw-bold">B</label></div>
+                                    <div class="form-check"><input class="form-check-input" type="checkbox" ${line.italic?'checked':''} onchange="updateKopData(${idx}, 'italic', this.checked)"><label class="form-check-label small fst-italic">I</label></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+                container.insertAdjacentHTML('beforeend', html);
+            });
+        }
+        function updateKopData(idx, key, val) {
+            db.kop[idx][key] = val;
+            localStorage.setItem('binda_kop', JSON.stringify(db.kop));
+            renderKopPreview();
+        }
+        function renderKopPreview() {
+            const container = document.getElementById('kopPreviewText');
+            container.innerHTML = '';
+            db.kop.forEach(line => {
+                const div = document.createElement('div');
+                div.innerText = line.text;
+                div.style.fontFamily = line.font;
+                div.style.fontSize = line.size + 'px';
+                div.style.color = line.color;
+                div.style.fontWeight = line.bold ? 'bold' : 'normal';
+                div.style.fontStyle = line.italic ? 'italic' : 'normal';
+                div.className = 'kop-line';
+                container.appendChild(div);
+            });
+        }
+
+        // --- 2. JURUSAN & ROMBEL ---
+        function askAddJurusan() {
+            document.getElementById('modalJurusanTitle').innerText = 'Tambah Jurusan';
+            document.getElementById('jurIdEdit').value = '';
+            document.getElementById('inputJurNama').value = '';
+            document.getElementById('inputJurSingkat').value = '';
+            new bootstrap.Modal(document.getElementById('modalJurusan')).show();
+        }
+        function askEditJurusan(idx) {
+            const jur = db.jurusan[idx];
+            document.getElementById('modalJurusanTitle').innerText = 'Ubah Jurusan';
+            document.getElementById('jurIdEdit').value = idx;
+            document.getElementById('inputJurNama').value = jur.nama;
+            document.getElementById('inputJurSingkat').value = jur.singkatan;
+            new bootstrap.Modal(document.getElementById('modalJurusan')).show();
+        }
+        function saveJurusan() {
+            const id = document.getElementById('jurIdEdit').value;
+            const nama = document.getElementById('inputJurNama').value;
+            const singkatan = document.getElementById('inputJurSingkat').value.toUpperCase();
+            
+            if(!nama || !singkatan) return alert("Isi semua data!");
+
+            const modal = bootstrap.Modal.getInstance(document.getElementById('modalJurusan'));
+            modal.hide();
+
+            requestConfirmation(() => {
+                if(id !== '') {
+                    db.jurusan[id] = {nama, singkatan};
+                } else {
+                    db.jurusan.push({nama, singkatan});
+                }
+                localStorage.setItem('binda_jurusan', JSON.stringify(db.jurusan));
+                renderJurusanTable();
+                updateJurusanDropdown();
+            });
+        }
+        function askDelJurusan(idx) {
+            requestConfirmation(() => {
+                db.jurusan.splice(idx, 1);
+                localStorage.setItem('binda_jurusan', JSON.stringify(db.jurusan));
+                renderJurusanTable();
+                updateJurusanDropdown();
+            });
+        }
+
+        function renderJurusanTable() {
+            const tbody = document.getElementById('tblJurusan');
+            tbody.innerHTML = '';
+            db.jurusan.forEach((jur, idx) => {
+                tbody.innerHTML += `
+                <tr>
+                    <td>${idx+1}</td>
+                    <td>${jur.singkatan}</td>
+                    <td>${jur.nama}</td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-light border me-1" onclick="askEditJurusan(${idx})"><i class="fas fa-edit text-warning"></i></button>
+                        <button class="btn btn-sm btn-light border" onclick="askDelJurusan(${idx})"><i class="fas fa-trash text-danger"></i></button>
+                    </td>
+                </tr>`;
+            });
+        }
+
+        function updateJurusanDropdown() {
+            const sel = document.getElementById('rombelJurusan');
+            sel.innerHTML = '';
+            db.jurusan.forEach(jur => {
+                const opt = document.createElement('option');
+                opt.value = jur.singkatan; opt.innerText = jur.singkatan;
+                sel.appendChild(opt);
+            });
+        }
+        function askGenerateRombel() {
+            const t = document.getElementById('rombelTingkat').value;
+            const j = document.getElementById('rombelJurusan').value;
+            const c = parseInt(document.getElementById('rombelCount').value);
+            if(!j) return alert('Buat Jurusan dulu!');
+            
+            requestConfirmation(() => {
+                for(let i=1; i<=c; i++) {
+                    const nm = `${t} ${j} ${i}`;
+                    if(!db.rombel.includes(nm)) db.rombel.push(nm);
+                }
+                db.rombel.sort();
+                localStorage.setItem('binda_rombel', JSON.stringify(db.rombel));
+                renderRombelBadges();
+            });
+        }
+        function askDelRombel(idx) {
+            requestConfirmation(() => {
+                db.rombel.splice(idx, 1);
+                localStorage.setItem('binda_rombel', JSON.stringify(db.rombel));
+                renderRombelBadges();
+            });
+        }
+        function renderRombelBadges() {
+            const c = document.getElementById('listRombel');
+            c.innerHTML = '';
+            db.rombel.forEach((r, idx) => {
+                c.innerHTML += `<span class="badge bg-white text-dark border p-2 d-flex align-items-center gap-2">${r} <i class="fas fa-times text-danger cursor-pointer" onclick="askDelRombel(${idx})"></i></span>`;
+            });
+        }
+
+        // --- 3. WALI KELAS ---
+        function loadWaliKelasData() {
+            const container = document.getElementById('waliKelasContainer');
+            container.innerHTML = '';
+            if(db.rombel.length === 0) { container.innerHTML = '<div class="text-center text-muted py-4">Belum ada rombel.</div>'; return; }
+            let table = `<table class="table table-bordered table-hover bg-white small align-middle"><thead class="table-light"><tr><th>Rombel</th><th>Wali Kelas</th></tr></thead><tbody>`;
+            const gurus = ["Burhanudin, S.Kom", "Siti Aminah, S.Pd", "Ahmad Zaky, S.T", "Dewi Sartika, S.Pd"];
+            db.rombel.forEach(r => {
+                const asg = db.wali[r] || "";
+                let opts = `<option value="">-- Pilih Guru --</option>`;
+                gurus.forEach(g => { opts += `<option value="${g}" ${asg===g?'selected':''}>${g}</option>`; });
+                table += `<tr><td class="fw-bold">${r}</td><td><select class="form-select form-select-sm" onchange="saveWaliKelas('${r}', this.value)">${opts}</select></td></tr>`;
+            });
+            table += `</tbody></table>`;
+            container.innerHTML = table;
+        }
+        function saveWaliKelas(r, g) {
+            db.wali[r] = g;
+            localStorage.setItem('binda_wali', JSON.stringify(db.wali));
+        }
+
+        // --- 4. KUSTOMISASI ---
+        function setAppTheme(t, el) {
+            let actualTheme = t;
+            if(t === 'system') actualTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            
+            db.theme = t;
+            localStorage.setItem('binda_theme', t);
+            
+            if(t === 'custom') {
+                document.getElementById('customColorWrapper').style.display = 'block';
+                applyTheme(actualTheme, db.accent);
+            } else if (t === 'light') {
+                document.getElementById('customColorWrapper').style.display = 'none';
+                applyTheme('light', '#0d6efd'); 
+            } else {
+                document.getElementById('customColorWrapper').style.display = 'none';
+                applyTheme(actualTheme, '#0d6efd'); 
+            }
+
+            document.querySelectorAll('.theme-card').forEach(c => c.classList.remove('selected'));
+            el.classList.add('selected');
+        }
+
+        function setCustomAccent(color) {
+            db.accent = color;
+            localStorage.setItem('binda_accent', color);
+            if(db.theme === 'custom') applyTheme('light', color); 
+        }
+
+        function applyTheme(t, a) {
+            document.body.setAttribute('data-theme', t);
+            document.documentElement.style.setProperty('--primary', a);
+            const activeCard = document.getElementById(`themeOpt-${t}`);
+            if(activeCard) {
+                document.querySelectorAll('.theme-card').forEach(c => c.classList.remove('selected'));
+                activeCard.classList.add('selected');
+            }
+            document.getElementById('accentColorPicker').value = a;
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Binda - Kalender Pendidikan</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Monospace untuk Angka Rapi -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@500&display=swap" rel="stylesheet">
+    
+    <style>
+        :root { 
+            --primary-blue: #0d6efd; 
+            --bg-light: #f4f6f9; 
+            --text-grey: #6c757d; 
+            --sidebar-width: 240px; 
+            --header-height: 65px; 
+        }
+        body { font-family: 'Poppins', sans-serif; background-color: var(--bg-light); font-size: 0.8rem; color: #333; overflow: hidden; margin: 0; height: 100vh; }
+        
+        /* Layout Common */
+        .top-header { background: white; height: var(--header-height); display: flex; align-items: center; justify-content: space-between; padding: 0 25px; box-shadow: 0 1px 5px rgba(0,0,0,0.05); position: fixed; top: 0; left: 0; right: 0; z-index: 1000; }
+        .sidebar { width: var(--sidebar-width); background: white; position: fixed; top: var(--header-height); bottom: 0; left: 0; padding-top: 20px; border-right: 1px solid #e9ecef; z-index: 900; overflow-y: auto; }
+        .main-wrapper { margin-left: var(--sidebar-width); margin-top: var(--header-height); height: calc(100vh - var(--header-height)); display: flex; flex-direction: column; }
+        .breadcrumb-container { padding: 10px 30px; background: var(--bg-light); font-size: 0.85rem; font-weight: 500; color: var(--text-grey); flex-shrink: 0; }
+        .breadcrumb-container span { color: var(--primary-blue); font-weight: 600; }
+        .content-container { padding: 0 30px 20px 30px; flex-grow: 1; height: 100%; overflow: hidden; }
+        
+        /* Nav & Search */
+        .nav-link { color: var(--text-grey); padding: 12px 25px; display: flex; align-items: center; gap: 15px; text-decoration: none; font-weight: 500; }
+        .nav-link:hover { color: var(--primary-blue); background: #f8f9fa; }
+        .nav-link.active-menu { background: var(--primary-blue); color: white; border-radius: 0 50px 50px 0; margin-right: 15px; }
+        .header-search { display: flex; align-items: center; gap: 10px; background: var(--bg-light); padding: 6px 15px; border-radius: 20px; border: 1px solid #e9ecef; }
+        .header-search input { border: none; background: transparent; outline: none; font-size: 0.85rem; color: var(--text-grey); width: 180px; }
+
+        /* --- KALDIK LAYOUT --- */
+        .kaldik-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; height: 100%; overflow: hidden; }
+        
+        /* Panel Kiri: Kalender */
+        .kaldik-main { 
+            background: white; border-radius: 12px; padding: 20px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid #eef2f6;
+            display: flex; flex-direction: column; height: 100%; overflow: hidden; 
+        }
+        .calendar-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-shrink: 0; }
+        .year-display { font-size: 1.3rem; font-weight: 700; color: #333; letter-spacing: -0.5px; }
+        
+        .calendar-wrapper { flex-grow: 1; display: flex; flex-direction: column; gap: 20px; overflow: hidden; }
+        .month-block { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        
+        .month-header { 
+            display: flex; justify-content: space-between; align-items: center; 
+            margin-bottom: 10px; padding-bottom: 5px; border-bottom: 2px solid #f0f0f0; 
+        }
+        .month-name { font-size: 1rem; font-weight: 700; color: #444; text-transform: uppercase; letter-spacing: 1px; }
+        
+        .cal-grid { 
+            display: grid; grid-template-columns: repeat(7, 1fr); 
+            text-align: center; gap: 4px; flex-grow: 1; grid-auto-rows: 1fr; 
+        }
+        .cal-head { font-size: 0.8rem; font-weight: 700; color: #adb5bd; text-transform: uppercase; padding-bottom: 5px; }
+        
+        .cal-day { 
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+            font-size: 1.1rem; font-weight: 600; color: #444; padding-top: 2px;
+            cursor: pointer; border-radius: 8px; position: relative; transition: 0.2s; 
+            border: 1px solid transparent; 
+        }
+        .cal-day:hover { background-color: #f8f9fa; border-color: #e9ecef; }
+        .cal-day.weekend .day-number { color: #dc3545; }
+        
+        /* Highlight Hari Ini - Kotakan Angka */
+        .day-number { 
+            display: flex; align-items: center; justify-content: center;
+            width: 30px; height: 30px; border-radius: 8px; 
+            position: relative; z-index: 2; margin-bottom: 2px;
+        }
+        .cal-day.today .day-number { 
+            background-color: var(--primary-blue); color: white !important; 
+            font-weight: 700; box-shadow: 0 3px 8px rgba(13,110,253,0.3);
+        }
+        
+        /* Event Dots Container */
+        .dots-container { display: flex; gap: 3px; flex-wrap: wrap; justify-content: center; max-width: 80%; z-index: 1; min-height: 6px;}
+        .event-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+        /* Panel Kanan: Split Info */
+        .kaldik-side { 
+            background: white; border-radius: 12px; padding: 0; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid #eef2f6;
+            display: grid; grid-template-columns: 4fr 6fr; /* Lebih lebar utk agenda */
+            height: 100%; overflow: hidden; 
+        }
+        
+        .col-legend { padding: 20px; border-right: 1px solid #f0f0f0; overflow-y: auto; background: #fafafa; display: flex; flex-direction: column; }
+        .col-agenda { padding: 20px; overflow-y: auto; }
+
+        .section-title { font-size: 0.85rem; font-weight: 700; text-transform: uppercase; color: #adb5bd; margin-bottom: 15px; letter-spacing: 1px; }
+        
+        /* Legend Item Clean + Count */
+        .legend-item { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; font-size: 0.8rem; font-weight: 500; color: #555; }
+        .legend-info { display: flex; align-items: center; gap: 10px; }
+        .legend-color { width: 14px; height: 14px; border-radius: 4px; flex-shrink: 0; }
+        
+        /* Style Angka Jumlah */
+        .legend-counts { 
+            font-family: 'Roboto Mono', monospace; 
+            font-weight: 500; color: #666; font-size: 0.8rem;
+            display: flex; align-items: center; gap: 5px;
+        }
+        .count-val { width: 20px; text-align: center; }
+        .count-sep { color: #ccc; }
+
+        /* Agenda Items */
+        .agenda-card { 
+            background: white; border-radius: 8px; padding: 12px 15px; margin-bottom: 15px; 
+            border-left: 4px solid #ccc; box-shadow: 0 2px 5px rgba(0,0,0,0.02); border: 1px solid #eee; border-left-width: 4px;
+            transition: transform 0.2s; cursor: pointer;
+        }
+        .agenda-card:hover { transform: translateX(3px); background-color: #fdfdfd; }
+        .agenda-date { font-size: 0.75rem; font-weight: 700; color: #333; margin-bottom: 4px; display: flex; justify-content: space-between;}
+        .agenda-title { font-size: 0.95rem; font-weight: 600; color: var(--primary-blue); margin-bottom: 2px; }
+        .agenda-cat { font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; background: #eee; color: #555; font-weight: 600; text-transform: uppercase; }
+        .agenda-desc { font-size: 0.8rem; color: #777; line-height: 1.4; margin-top: 5px; }
+
+        /* Modal Elements */
+        .event-list-item { background: #f8f9fa; border: 1px solid #eee; border-radius: 6px; padding: 10px; margin-bottom: 10px; position: relative; }
+        .btn-event-action { position: absolute; top: 8px; right: 8px; color: #aaa; cursor: pointer; transition: 0.2s; }
+        .btn-event-action:hover { color: #dc3545; }
+        .btn-event-edit { right: 30px; } 
+        .btn-event-edit:hover { color: var(--primary-blue); }
+
+        /* Category Manager Styles */
+        .manage-cat-box { background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #e9ecef; margin-top: 10px; display: none; }
+        .manage-cat-box.show { display: block; }
+        .cat-list-item { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed #e0e0e0; font-size: 0.8rem; }
+        .cat-list-item:last-child { border-bottom: none; }
+        .cat-actions { display: flex; gap: 8px; }
+        .cat-action-btn { cursor: pointer; color: #aaa; font-size: 0.75rem; }
+        .cat-action-btn:hover { color: #333; }
+        .cat-action-btn.delete:hover { color: #dc3545; }
+
+        /* Custom Tooltip */
+        .custom-tooltip { 
+            position: absolute; background: white; color: #333; padding: 10px; 
+            border-radius: 8px; font-size: 0.8rem; z-index: 1100; pointer-events: none; 
+            display: none; box-shadow: 0 5px 20px rgba(0,0,0,0.2); border: 1px solid #eee; min-width: 150px;
+        }
+        .tooltip-header { font-weight: 700; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 5px; color: var(--primary-blue); }
+        .tooltip-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+        .tooltip-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+    <header class="top-header">
+        <div class="d-flex align-items-center gap-4">
+            <img src="img/logo_app.png" height="32" alt="Binda">
+            <div class="header-search"><i class="fas fa-search text-muted"></i><input type="text" placeholder="Pencarian"></div>
+        </div>
+        <div class="text-center">
+            <div style="font-weight:600; font-size:1rem;" id="jamHeader">00.00.00</div>
+            <div style="font-size:0.75rem; color:var(--primary-blue);" id="tglHeader">...</div>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <div class="text-end lh-1"><h6 class="m-0 fw-bold">SMK DARUL ABROR</h6><span style="font-size:0.7rem;" class="text-muted">admin</span></div>
+            <img src="img/logo_sekolah.png" height="40">
+        </div>
+    </header>
+
+    <nav class="sidebar">
+        <div class="nav flex-column">
+            <a href="beranda.html" class="nav-link"><i class="fas fa-th-large" style="width:20px;text-align:center;"></i> Beranda</a>
+            <a href="siswa.html" class="nav-link"><i class="fas fa-user-graduate" style="width:20px;text-align:center;"></i> Siswa</a>
+            <a href="kaldik.html" class="nav-link active-menu"><i class="fas fa-calendar-alt" style="width:20px;text-align:center;"></i> Kaldik</a>
+            <a href="guru.html" class="nav-link"><i class="fas fa-chalkboard-teacher" style="width:20px;text-align:center;"></i> Guru</a>
+            <a href="pengaturan.html" class="nav-link"><i class="fas fa-cog" style="width:20px;text-align:center;"></i> Pengaturan</a>
+            <a href="#" class="nav-link text-danger mt-4"><i class="fas fa-power-off" style="width:20px;text-align:center;"></i> Keluar</a>
+        </div>
+    </nav>
+
+    <div class="main-wrapper">
+        <div class="breadcrumb-container">Buku Induk / <span>Kaldik</span></div>
+        <div class="content-container">
+            <div class="kaldik-layout">
+                
+                <!-- PANEL KIRI: KALENDER -->
+                <div class="kaldik-main">
+                    <div class="calendar-controls">
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="year-display" id="currentYearDisplay">2025</span>
+                            <div class="btn-group">
+                                <button class="btn btn-sm btn-light border" onclick="prevMonth()"><i class="fas fa-chevron-up"></i></button>
+                                <button class="btn btn-sm btn-light border" onclick="nextMonth()"><i class="fas fa-chevron-down"></i></button>
+                            </div>
+                        </div>
+                        <button class="btn btn-sm btn-primary px-3" onclick="openEventModal()" title="Tambah Agenda">
+                            <i class="fas fa-plus"></i> Agenda
+                        </button>
+                    </div>
+
+                    <div class="calendar-wrapper">
+                        <!-- Bulan 1 -->
+                        <div class="month-block" id="monthBlock1"></div>
+                        <!-- Bulan 2 -->
+                        <div class="month-block" id="monthBlock2"></div>
+                    </div>
+                </div>
+
+                <!-- PANEL KANAN: LEGENDA & AGENDA -->
+                <div class="kaldik-side">
+                    <!-- KOLOM 1: LEGENDA & STATISTIK -->
+                    <div class="col-legend">
+                        <div>
+                            <div class="section-title d-flex justify-content-between">
+                                <span>Kategori</span>
+                                <span style="font-size:0.65rem; color:#aaa; font-weight:400; text-transform:none;">(Bln 1 | Bln 2)</span>
+                            </div>
+                            <div id="legendContainer">
+                                <!-- Populated by JS (With Counts) -->
+                            </div>
+                        </div>
+                        
+                        <div class="mt-auto">
+                            <div class="section-title mb-2">Hari Efektif</div>
+                            <select class="form-select form-select-sm mb-3" style="font-size:0.75rem;" id="statModeSelect" onchange="renderStats()">
+                                <option value="visible">2 Bulan Tampak</option>
+                                <option value="year" id="optYearLabel">1 Tahun (2025)</option>
+                            </select>
+                            
+                            <!-- Container Statistik Dinamis -->
+                            <div class="bg-white p-3 rounded border" id="effectiveDaysContainer">
+                                <!-- JS Populated -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- KOLOM 2: AGENDA LIST -->
+                    <div class="col-agenda">
+                        <div class="section-title d-flex justify-content-between">
+                            <span>Agenda 2 Bulan Ini</span>
+                            <span class="badge bg-light text-dark border" id="totalAgendaBadge">0 Agenda</span>
+                        </div>
+                        <div id="agendaListContainer">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL MANAJEMEN AGENDA & KATEGORI -->
+    <div class="modal fade" id="eventModal" tabindex="-1" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-primary text-white py-2">
+                    <h6 class="modal-title fw-bold"><i class="far fa-calendar-alt me-2"></i> Kelola Agenda</h6>
+                    <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Daftar Agenda Existing -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted mb-1">Agenda Terjadwal:</label>
+                        <div id="existingEventsList" class="mb-2">
+                            <!-- JS Populated -->
+                        </div>
+                    </div>
+
+                    <hr class="my-3">
+
+                    <!-- Form Tambah/Edit Agenda -->
+                    <h6 class="fw-bold small text-primary mb-3"><i class="fas fa-plus-circle me-1"></i> Tambah / Edit Agenda</h6>
+                    <input type="hidden" id="editIndex"> 
+                    
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold text-muted mb-1">Tanggal</label>
+                        <input type="date" class="form-control form-control-sm" id="inpDate">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold text-muted mb-1">Nama Kegiatan</label>
+                        <input type="text" class="form-control form-control-sm" id="inpTitle" placeholder="Contoh: Upacara Bendera">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold text-muted mb-1">Kategori</label>
+                        <div class="input-group input-group-sm">
+                            <select class="form-select" id="inpCategory">
+                                <!-- Populated by JS -->
+                            </select>
+                            <button class="btn btn-outline-secondary" type="button" onclick="toggleManageCat()" title="Kelola Kategori"><i class="fas fa-cog"></i></button>
+                        </div>
+                        
+                        <!-- Panel Manajemen Kategori -->
+                        <div class="manage-cat-box" id="manageCatBox">
+                            <div class="d-flex justify-content-between align-items-center mb-2 border-bottom pb-2">
+                                <span class="fw-bold small text-dark">Daftar Kategori</span>
+                                <button class="btn btn-xs btn-link text-decoration-none" onclick="prepareEditCat(null)">+ Baru</button>
+                            </div>
+                            <div id="catListContainer" style="max-height: 150px; overflow-y: auto;">
+                                <!-- JS Populated -->
+                            </div>
+                            
+                            <!-- Form Add/Edit Category -->
+                            <div id="catForm" class="mt-2 pt-2 border-top" style="display:none;">
+                                <input type="hidden" id="catIdEdit">
+                                <input type="text" id="catNameEdit" class="form-control form-control-sm mb-1" placeholder="Nama Kategori">
+                                <div class="d-flex gap-2 mb-2">
+                                    <input type="color" id="catColorEdit" class="form-control form-control-color form-control-sm w-100" value="#0d6efd">
+                                    <button class="btn btn-sm btn-success w-100" onclick="saveCategory()">Simpan</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold text-muted mb-1">Catatan Tambahan</label>
+                        <textarea class="form-control form-control-sm" id="inpNote" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer py-2 bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="resetForm()">Reset Form</button>
+                    <button type="button" class="btn btn-primary btn-sm px-4" onclick="saveEvent()">Simpan Agenda</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL KONFIRMASI KATEGORI -->
+    <div class="modal fade" id="confirmCatModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white py-1">
+                    <h6 class="modal-title small">Konfirmasi Hapus</h6>
+                </div>
+                <div class="modal-body text-center">
+                    <p class="small mb-2">Ketik <b>"konfirmasi"</b> untuk menghapus kategori ini secara permanen.</p>
+                    <input type="text" id="confirmCatInput" class="form-control form-control-sm text-center mb-2" oninput="checkCatConfirm(this.value)">
+                    <button id="btnConfirmDelCat" class="btn btn-danger btn-sm w-100" disabled onclick="executeDelCat()">Hapus</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOOLTIP CUSTOM -->
+    <div id="customTooltip" class="custom-tooltip"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // --- CONFIG & STATE ---
+        let categories = [
+            { id: 'libur_nas', name: 'Libur Nasional', color: '#dc3545' },
+            { id: 'libur_sek', name: 'Libur Sekolah', color: '#fd7e14' },
+            { id: 'kbm', name: 'KBM', color: '#198754' },
+            { id: 'ujian', name: 'Ujian / PTS / PAS', color: '#ffc107' },
+            { id: 'ekskul', name: 'Ekstrakurikuler', color: '#20c997' },
+            { id: 'rapat', name: 'Rapat Guru', color: '#6f42c1' },
+            { id: 'acara', name: 'Acara Sekolah', color: '#0dcaf0' },
+            { id: 'admin', name: 'Administrasi', color: '#6c757d' }
+        ];
+
+        let events = {
+            "2025-11-05": [{ title: "Hari Cinta Puspa", cat: "libur_nas", note: "Upacara bendera pagi" }],
+            "2025-11-12": [{ title: "Hari Ayah Nasional", cat: "acara", note: "Lomba Puisi Antar Kelas" }],
+            "2025-11-25": [
+                { title: "Hari Guru", cat: "acara", note: "Upacara & Potong Tumpeng" }, 
+                { title: "Rapat Evaluasi", cat: "rapat", note: "Ruang Guru Jam 13.00" }
+            ],
+            "2025-12-01": [{ title: "PAS Semester Ganjil", cat: "ujian", note: "Hari Pertama" }],
+            "2025-12-25": [{ title: "Hari Raya Natal", cat: "libur_nas", note: "" }]
+        };
+
+        let currentYear = 2025; 
+        let currentMonth = 10; // Nov
+        const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+        let pendingDelCatId = null;
+
+        // --- INIT ---
+        document.addEventListener("DOMContentLoaded", () => {
+            renderLegend();
+            renderCalendar();
+            renderStats(); 
+            updateClock();
+        });
+
+        // --- RENDER FUNCTIONS ---
+        function renderLegend() {
+            const container = document.getElementById('legendContainer');
+            const select = document.getElementById('inpCategory');
+            
+            container.innerHTML = '';
+            select.innerHTML = '';
+
+            // 1. Calculate Counts per Category for Visible Months
+            let counts = {};
+            categories.forEach(c => counts[c.id] = { m1: 0, m2: 0 });
+
+            const countMonth = (y, m, keyStr) => {
+                const days = new Date(y, m+1, 0).getDate();
+                for(let d=1; d<=days; d++) {
+                    const dateKey = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                    if(events[dateKey]) {
+                        events[dateKey].forEach(ev => {
+                            if(counts[ev.cat]) counts[ev.cat][keyStr]++;
+                        });
+                    }
+                }
+            };
+            
+            let nextM = currentMonth + 1; 
+            let nextY = currentYear;
+            if(nextM > 11) { nextM = 0; nextY++; }
+
+            countMonth(currentYear, currentMonth, 'm1');
+            countMonth(nextY, nextM, 'm2');
+
+            // 2. Render Legend
+            categories.forEach(c => {
+                // Select Option
+                const opt = document.createElement('option');
+                opt.value = c.id; opt.innerText = c.name;
+                select.appendChild(opt);
+
+                // Render Item
+                container.innerHTML += `
+                    <div class="legend-item">
+                        <div class="legend-info">
+                            <div class="legend-color" style="background:${c.color}"></div>
+                            <span>${c.name}</span>
+                        </div>
+                        <div class="legend-counts">
+                            <span class="count-val">${counts[c.id].m1}</span>
+                            <span class="count-sep">|</span>
+                            <span class="count-val">${counts[c.id].m2}</span>
+                        </div>
+                    </div>`;
+            });
+
+            // 3. Render Effective Days
+            renderStats(); 
+        }
+
+        function renderCalendar() {
+            document.getElementById('currentYearDisplay').innerText = currentYear;
+            renderMonth(currentYear, currentMonth, 'monthBlock1');
+            let nextM = currentMonth + 1; let nextY = currentYear;
+            if(nextM > 11) { nextM = 0; nextY++; }
+            renderMonth(nextY, nextM, 'monthBlock2');
+            renderLegend(); // Update counts
+            renderAgendaList(currentYear, currentMonth, nextY, nextM);
+        }
+
+        function renderMonth(y, m, containerId) {
+            const container = document.getElementById(containerId);
+            const firstDay = new Date(y, m, 1).getDay();
+            const daysInMonth = new Date(y, m + 1, 0).getDate();
+            const today = new Date();
+
+            let html = `
+                <div class="month-header">
+                    <span class="month-name">${monthNames[m]} ${y}</span>
+                </div>
+                <div class="cal-grid">
+                    <div class="cal-head text-danger">M</div><div class="cal-head">S</div><div class="cal-head">S</div><div class="cal-head">R</div><div class="cal-head">K</div><div class="cal-head text-success">J</div><div class="cal-head">S</div>`;
+
+            for(let i=0; i<firstDay; i++) html += `<div></div>`;
+
+            for(let d=1; d<=daysInMonth; d++) {
+                const dateKey = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                const evs = events[dateKey] || [];
+                
+                let classes = "cal-day";
+                const dayOfWeek = new Date(y, m, d).getDay();
+                if(dayOfWeek === 0) classes += " weekend";
+                
+                let isToday = (d === today.getDate() && m === today.getMonth() && y === today.getFullYear());
+                if(isToday) classes += " today";
+
+                let dotsHtml = `<div class="dots-container">`;
+                evs.forEach(ev => {
+                    const cat = categories.find(c => c.id === ev.cat);
+                    const color = cat ? cat.color : '#ccc';
+                    dotsHtml += `<div class="event-dot" style="background:${color}"></div>`;
+                });
+                dotsHtml += `</div>`;
+
+                const tooltipAttr = evs.length > 0 ? `onmouseenter="showTooltip(this, '${dateKey}')" onmouseleave="hideTooltip()"` : '';
+
+                html += `<div class="${classes}" onclick="openEventModal('${dateKey}')" ${tooltipAttr}>
+                            <span class="day-number">${d}</span>
+                            ${dotsHtml}
+                         </div>`;
+            }
+            html += `</div>`;
+            container.innerHTML = html;
+        }
+
+        function renderStats() {
+            const mode = document.getElementById('statModeSelect').value;
+            const container = document.getElementById('effectiveDaysContainer');
+            let nextM = currentMonth + 1; let nextY = currentYear;
+            if(nextM > 11) { nextM = 0; nextY++; }
+            document.getElementById('optYearLabel').innerText = `1 Tahun (${currentYear})`;
+
+            let htmlContent = '';
+            if(mode === 'visible') {
+                const eff1 = countEffectiveDays(currentYear, currentMonth);
+                const eff2 = countEffectiveDays(nextY, nextM);
+                htmlContent = `
+                    <div class="d-flex justify-content-between align-items-center mb-2 border-bottom pb-2">
+                        <span class="text-muted small fw-bold">${monthNames[currentMonth]} ${currentYear}</span>
+                        <span class="fw-bold text-primary fs-5">${eff1} Hari</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted small fw-bold">${monthNames[nextM]} ${nextY}</span>
+                        <span class="fw-bold text-primary fs-5">${eff2} Hari</span>
+                    </div>`;
+            } else {
+                let totalEffective = 0;
+                for(let m=0; m<12; m++) totalEffective += countEffectiveDays(currentYear, m);
+                htmlContent = `<div class="text-center py-2"><span class="d-block text-muted small mb-1 fw-bold">Total Hari Efektif</span><span class="d-block fw-bold" style="font-size: 2.5rem; line-height: 1; color:var(--cat-kbm);">${totalEffective}</span><span class="d-block small text-muted mt-1">Tahun ${currentYear}</span></div>`;
+            }
+            container.innerHTML = htmlContent;
+        }
+
+        function countEffectiveDays(y, m) {
+            let count = 0; const days = new Date(y, m+1, 0).getDate();
+            for(let d=1; d<=days; d++) {
+                const dayOfWeek = new Date(y, m, d).getDay();
+                if(dayOfWeek === 0) continue; 
+                const dateKey = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                const evs = events[dateKey];
+                let isHoliday = false;
+                if(evs) { for(let ev of evs) { if(ev.cat === 'libur_nas' || ev.cat === 'libur_sek') { isHoliday = true; break; } } }
+                if(!isHoliday) count++;
+            }
+            return count;
+        }
+
+        function renderAgendaList(y1, m1, y2, m2) {
+            const container = document.getElementById('agendaListContainer');
+            container.innerHTML = '';
+            let count = 0;
+            const processMonth = (y, m) => {
+                const days = new Date(y, m+1, 0).getDate();
+                for(let d=1; d<=days; d++) {
+                    const dateKey = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                    if(events[dateKey]) {
+                        events[dateKey].forEach(ev => {
+                            count++;
+                            const cat = categories.find(c => c.id === ev.cat);
+                            const color = cat ? cat.color : '#ccc';
+                            const catName = cat ? cat.name : 'Umum';
+                            container.innerHTML += `
+                            <div class="agenda-card" style="border-left-color: ${color};" ondblclick="openEventModal('${dateKey}')" title="Klik 2x untuk edit">
+                                <div class="agenda-date"><span>${d} ${monthNames[m]} ${y}</span><span class="agenda-cat" style="background:${color}20; color:${color}">${catName}</span></div>
+                                <div class="agenda-title">${ev.title}</div>
+                                <div class="agenda-desc">${ev.note || '-'}</div>
+                            </div>`;
+                        });
+                    }
+                }
+            };
+            processMonth(y1, m1); processMonth(y2, m2);
+            document.getElementById('totalAgendaBadge').innerText = count > 0 ? `${count} Agenda` : "0 Agenda";
+            if(count === 0) container.innerHTML = `<div class="text-center text-muted py-5"><i class="far fa-calendar-check fa-2x mb-2"></i><br>Tidak ada agenda.</div>`;
+        }
+
+        function prevMonth() { currentMonth--; if(currentMonth<0){currentMonth=11;currentYear--;} renderCalendar(); }
+        function nextMonth() { currentMonth++; if(currentMonth>11){currentMonth=0;currentYear++;} renderCalendar(); }
+
+        // --- MODAL & CAT MANAGEMENT ---
+        function openEventModal(dateKey) {
+            const m = new bootstrap.Modal(document.getElementById('eventModal'));
+            if(!dateKey) { const now = new Date(); dateKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`; }
+            document.getElementById('inpDate').value = dateKey;
+            renderExistingEvents(dateKey);
+            resetForm();
+            document.getElementById('manageCatBox').classList.remove('show'); // Hide cat manager
+            m.show();
+        }
+
+        function renderExistingEvents(dateKey) {
+            const listContainer = document.getElementById('existingEventsList');
+            const evs = events[dateKey];
+            if(!evs || evs.length === 0) { listContainer.innerHTML = '<div class="text-muted small fst-italic">Belum ada agenda.</div>'; return; }
+            listContainer.innerHTML = '';
+            evs.forEach((ev, idx) => {
+                const cat = categories.find(c => c.id === ev.cat);
+                const color = cat ? cat.color : '#ccc';
+                listContainer.innerHTML += `
+                <div class="event-list-item" style="border-left: 3px solid ${color}">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div><div class="fw-bold small">${ev.title}</div><div class="small text-muted">${cat ? cat.name : '-'}</div></div>
+                        <div><i class="fas fa-edit btn-event-action btn-event-edit me-2" onclick="editEvent('${dateKey}', ${idx})"></i><i class="fas fa-trash btn-event-action" onclick="deleteEvent('${dateKey}', ${idx})"></i></div>
+                    </div>
+                </div>`;
+            });
+        }
+
+        function editEvent(dateKey, idx) {
+            const ev = events[dateKey][idx];
+            document.getElementById('inpTitle').value = ev.title;
+            document.getElementById('inpCategory').value = ev.cat;
+            document.getElementById('inpNote').value = ev.note;
+            document.getElementById('editIndex').value = idx; 
+        }
+
+        function deleteEvent(dateKey, idx) {
+            if(confirm("Hapus agenda ini?")) {
+                events[dateKey].splice(idx, 1);
+                if(events[dateKey].length === 0) delete events[dateKey];
+                renderExistingEvents(dateKey); renderCalendar(); 
+            }
+        }
+
+        function saveEvent() {
+            const date = document.getElementById('inpDate').value;
+            const title = document.getElementById('inpTitle').value;
+            const cat = document.getElementById('inpCategory').value;
+            const note = document.getElementById('inpNote').value;
+            const editIdx = document.getElementById('editIndex').value;
+            if(!date || !title) return alert("Lengkapi data!");
+            if(!events[date]) events[date] = [];
+            const newEvent = { title, cat, note };
+            if(editIdx !== "") events[date][editIdx] = newEvent; else events[date].push(newEvent);
+            renderCalendar(); renderExistingEvents(date); resetForm();
+        }
+
+        function resetForm() {
+            document.getElementById('inpTitle').value = ''; document.getElementById('inpNote').value = ''; document.getElementById('editIndex').value = '';
+        }
+
+        // --- CATEGORY CRUD ---
+        function toggleManageCat() {
+            const box = document.getElementById('manageCatBox');
+            box.classList.toggle('show');
+            if(box.classList.contains('show')) renderCategoryList();
+        }
+
+        function renderCategoryList() {
+            const c = document.getElementById('catListContainer');
+            c.innerHTML = '';
+            categories.forEach(cat => {
+                c.innerHTML += `
+                <div class="cat-list-item">
+                    <div class="d-flex align-items-center gap-2"><div style="width:12px;height:12px;border-radius:2px;background:${cat.color}"></div><span>${cat.name}</span></div>
+                    <div class="cat-actions"><i class="fas fa-edit cat-action-btn" onclick="prepareEditCat('${cat.id}')"></i><i class="fas fa-trash cat-action-btn delete" onclick="confirmDeleteCat('${cat.id}')"></i></div>
+                </div>`;
+            });
+        }
+
+        function prepareEditCat(id) {
+            const form = document.getElementById('catForm');
+            form.style.display = 'block';
+            if(id) {
+                const cat = categories.find(c => c.id === id);
+                document.getElementById('catIdEdit').value = cat.id;
+                document.getElementById('catNameEdit').value = cat.name;
+                document.getElementById('catColorEdit').value = cat.color;
+            } else {
+                document.getElementById('catIdEdit').value = '';
+                document.getElementById('catNameEdit').value = '';
+                document.getElementById('catColorEdit').value = '#0d6efd';
+            }
+        }
+
+        function saveCategory() {
+            const id = document.getElementById('catIdEdit').value;
+            const name = document.getElementById('catNameEdit').value;
+            const color = document.getElementById('catColorEdit').value;
+            
+            if(!name) return alert("Nama kategori harus diisi");
+
+            if(id) {
+                // Edit
+                const idx = categories.findIndex(c => c.id === id);
+                categories[idx].name = name;
+                categories[idx].color = color;
+            } else {
+                // Add
+                const newId = name.toLowerCase().replace(/\s+/g, '_');
+                categories.push({ id: newId, name, color });
+            }
+            
+            renderLegend(); renderCalendar(); renderCategoryList();
+            document.getElementById('catForm').style.display = 'none';
+        }
+
+        function confirmDeleteCat(id) {
+            pendingDelCatId = id;
+            document.getElementById('confirmCatInput').value = '';
+            document.getElementById('btnConfirmDelCat').disabled = true;
+            new bootstrap.Modal(document.getElementById('confirmCatModal')).show();
+        }
+
+        function checkCatConfirm(val) {
+            document.getElementById('btnConfirmDelCat').disabled = (val.toLowerCase() !== 'konfirmasi');
+        }
+
+        function executeDelCat() {
+            if(pendingDelCatId) {
+                categories = categories.filter(c => c.id !== pendingDelCatId);
+                renderLegend(); renderCalendar(); renderCategoryList();
+                bootstrap.Modal.getInstance(document.getElementById('confirmCatModal')).hide();
+            }
+        }
+
+        // Tooltip
+        const tooltip = document.getElementById('customTooltip');
+        function showTooltip(el, dateKey) {
+            const evs = events[dateKey];
+            if(!evs) return;
+            let content = `<div class="tooltip-header">${new Date(dateKey).toLocaleDateString('id-ID', {weekday:'long', day:'numeric', month:'long'})}</div>`;
+            evs.forEach(ev => {
+                const cat = categories.find(c => c.id === ev.cat);
+                const color = cat ? cat.color : '#ccc';
+                content += `<div class="tooltip-row"><div class="tooltip-dot" style="background:${color}"></div><div><div style="line-height:1.1; font-weight:600;">${ev.title}</div><div style="font-size:0.7rem; color:#888;">${cat ? cat.name : ''}</div></div></div>`;
+            });
+            tooltip.innerHTML = content;
+            tooltip.style.display = 'block';
+            const rect = el.getBoundingClientRect();
+            let top = rect.top - tooltip.offsetHeight - 10;
+            let left = rect.left + (rect.width/2) - (tooltip.offsetWidth/2);
+            if(top < 0) top = rect.bottom + 10; 
+            tooltip.style.top = top + 'px'; tooltip.style.left = left + 'px';
+        }
+        function hideTooltip() { tooltip.style.display = 'none'; }
+
+        function updateClock() {
+            const n = new Date();
+            document.getElementById('jamHeader').innerText = n.toLocaleTimeString('en-GB').replace(/:/g,'.');
+            document.getElementById('tglHeader').innerText = n.toLocaleDateString('id-ID', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+        }
+        setInterval(updateClock, 1000);
+    </script>
+</body>
+</html>

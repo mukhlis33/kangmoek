@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Binda - Data Siswa</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary-blue: #0d6efd; --bg-light: #f4f6f9; --text-grey: #6c757d; --sidebar-width: 240px; --header-height: 65px; }
+        body { font-family: 'Poppins', sans-serif; background-color: var(--bg-light); font-size: 0.8rem; color: #333; overflow: hidden; margin: 0; height: 100vh; }
+        
+        /* Layout & Shared */
+        .top-header { background: white; height: var(--header-height); display: flex; align-items: center; justify-content: space-between; padding: 0 25px; box-shadow: 0 1px 5px rgba(0,0,0,0.05); position: fixed; top: 0; left: 0; right: 0; z-index: 1000; }
+        .sidebar { width: var(--sidebar-width); background: white; position: fixed; top: var(--header-height); bottom: 0; left: 0; padding-top: 20px; border-right: 1px solid #e9ecef; z-index: 900; overflow-y: auto; }
+        .main-wrapper { margin-left: var(--sidebar-width); margin-top: var(--header-height); height: calc(100vh - var(--header-height)); display: flex; flex-direction: column; }
+        .breadcrumb-container { padding: 10px 30px; background: var(--bg-light); font-size: 0.85rem; font-weight: 500; color: var(--text-grey); flex-shrink: 0; }
+        .breadcrumb-container span { color: var(--primary-blue); font-weight: 600; }
+        .content-container { padding: 0 30px 20px 30px; flex-grow: 1; height: 100%; overflow: hidden; }
+        
+        /* Nav & Search */
+        .nav-link { color: var(--text-grey); padding: 12px 25px; display: flex; align-items: center; gap: 15px; text-decoration: none; font-weight: 500; }
+        .nav-link:hover { color: var(--primary-blue); background: #f8f9fa; }
+        .nav-link.active-menu { background: var(--primary-blue); color: white; border-radius: 0 50px 50px 0; margin-right: 15px; }
+        .header-search { display: flex; align-items: center; gap: 10px; background: var(--bg-light); padding: 6px 15px; border-radius: 20px; border: 1px solid #e9ecef; }
+        .header-search input { border: none; background: transparent; outline: none; font-size: 0.85rem; color: var(--text-grey); width: 180px; }
+
+        /* Siswa Specific */
+        .siswa-layout { display: flex; gap: 20px; height: 100%; position: relative; }
+        .siswa-grid { flex-grow: 1; background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); border: 1px solid #e9ecef; display: flex; flex-direction: column; transition: 0.3s; }
+        
+        /* Right Panel (No Expand Button) */
+        .siswa-right-panel { 
+            width: 320px; background: white; border-radius: 10px; padding: 20px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02); height: fit-content; 
+            border: 1px solid #e9ecef; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+            flex-shrink: 0; display: flex; flex-direction: column;
+            transform: translateX(0); opacity: 1;
+        }
+        .siswa-right-panel.hidden { width: 0; padding: 0; margin: 0; border: none; opacity: 0; transform: translateX(20px); overflow: hidden; }
+
+        .expand-tab {
+            position: absolute; top: 20px; right: 0;
+            background: white; border: 1px solid #e9ecef; border-right: none;
+            border-radius: 8px 0 0 8px; padding: 10px 5px;
+            box-shadow: -2px 2px 5px rgba(0,0,0,0.05);
+            cursor: pointer; z-index: 99; color: var(--primary-blue);
+            display: none; align-items: center; justify-content: center;
+            height: 50px; width: 30px; transition: 0.2s;
+        }
+        .expand-tab:hover { background: #f8f9fa; width: 35px; }
+        .expand-tab.visible { display: flex; }
+
+        /* Toolbar Controls */
+        .toolbar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+        .toolbar-row.top { padding-bottom: 12px; border-bottom: 1px dashed #eee; }
+        
+        .form-select-filter { font-size: 0.8rem; padding: 5px 10px; border-radius: 6px; border-color: #dee2e6; font-weight: 500; color: #555; cursor: pointer; }
+        .form-select-filter:focus { border-color: var(--primary-blue); box-shadow: 0 0 0 2px rgba(13,110,253,0.1); }
+        .input-search-filter { font-size: 0.8rem; padding: 5px 12px; border-radius: 20px; border: 1px solid #dee2e6; width: 250px; outline: none; }
+        .input-search-filter:focus { border-color: var(--primary-blue); }
+
+        /* Buttons */
+        .btn-pro { padding: 5px 12px; font-size: 0.75rem; border-radius: 6px; border: 1px solid #eee; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; text-decoration: none; color: #555; background: white; font-weight: 500; transition: 0.2s; }
+        .btn-pro:hover { background: #f8f9fa; border-color: #ccc; }
+        .btn-pro-primary { background: var(--primary-blue); color: white; border-color: var(--primary-blue); }
+        .btn-pro-primary:hover { background: #0b5ed7; color: white; border-color: #0b5ed7; }
+        
+        /* Table */
+        .table-responsive { flex-grow: 1; overflow: auto; }
+        .table-custom { width: 100%; border-collapse: separate; border-spacing: 0 2px; font-size: 0.78rem; color: #444; }
+        .table-custom thead th { background: #f8f9fa; color: var(--primary-blue); padding: 10px 12px; border-bottom: 2px solid #e9ecef; font-weight: 600; white-space: nowrap; position: sticky; top: 0; }
+        .table-custom tbody tr { background: white; transition: 0.1s; cursor: pointer; }
+        .table-custom tbody tr:hover { background: #f1f7ff; transform: scale(1.002); box-shadow: 0 2px 5px rgba(0,0,0,0.05); z-index: 1; position: relative;}
+        .table-custom td { padding: 8px 12px; vertical-align: middle; border-bottom: 1px solid #f0f0f0; }
+        .table-custom tr.selected { background: #eef4ff !important; border-left: 3px solid var(--primary-blue); }
+        .table-custom tr.selected td { color: var(--primary-blue); font-weight: 500; }
+
+        /* Card View */
+        .grid-view-container { display: none; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; padding: 5px; overflow-y: auto; flex-grow: 1; }
+        .student-card { background: white; border: 1px solid #e9ecef; border-radius: 10px; padding: 15px; text-align: center; transition: 0.2s; cursor: pointer; position: relative; }
+        .student-card:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.05); border-color: var(--primary-blue); }
+        .student-card.selected { border-color: var(--primary-blue); background: #f8fbff; }
+        .student-card img { width: 70px; height: 70px; border-radius: 50%; object-fit: cover; margin-bottom: 10px; border: 3px solid #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .card-check { position: absolute; top: 10px; left: 10px; }
+
+        /* Modal Styles */
+        .modal-edit-nav .nav-link { color: #555; font-weight: 500; font-size: 0.85rem; padding: 10px 15px; text-align: left; justify-content: flex-start; }
+        .modal-edit-nav .nav-link.active { background-color: var(--primary-blue); color: white; }
+        .form-section-title { font-size: 0.9rem; font-weight: 700; color: var(--primary-blue); border-bottom: 2px solid #eee; padding-bottom: 5px; margin-bottom: 15px; }
+        .form-group-label { font-size: 0.75rem; font-weight: 600; color: #444; margin-bottom: 3px; }
+        .form-control-custom { font-size: 0.8rem; padding: 6px 10px; border-radius: 4px; border: 1px solid #ddd; }
+        
+        .box-tab { border: 1px solid #ddd; padding: 5px 20px; border-radius: 4px; cursor: pointer; color: var(--primary-blue); background: white; margin-right:5px; font-size: 0.8rem;}
+        .box-tab.active { background: var(--primary-blue); color: white; border-color: var(--primary-blue); }
+    </style>
+</head>
+<body>
+    <!-- HEADER -->
+    <header class="top-header">
+        <div class="d-flex align-items-center gap-4">
+            <img src="img/logo_app.png" height="32">
+            <div class="header-search"><i class="fas fa-search text-muted"></i><input type="text" placeholder="Menu..."></div>
+        </div>
+        <div class="text-center">
+            <div style="font-weight:600;" id="jamHeader">00.00.00</div>
+            <div style="font-size:0.75rem; color:var(--primary-blue);" id="tglHeader">...</div>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <div class="text-end lh-1"><h6 class="m-0 fw-bold">SMK DARUL ABROR</h6><span style="font-size:0.7rem;" class="text-muted">admin</span></div>
+            <img src="img/logo_sekolah.png" height="40">
+        </div>
+    </header>
+
+    <!-- SIDEBAR -->
+    <nav class="sidebar">
+        <div class="nav flex-column">
+            <a href="beranda.html" class="nav-link"><i class="fas fa-th-large" style="width:20px;text-align:center;"></i> Beranda</a>
+            <a href="siswa.html?tab=aktif" class="nav-link active-menu"><i class="fas fa-user-graduate" style="width:20px;text-align:center;"></i> Siswa</a>
+            <div style="padding-left: 50px;">
+                <a href="siswa.html?tab=aktif" class="nav-link py-1" id="sub-aktif" style="font-size:0.75rem;">Aktif</a>
+                <a href="siswa.html?tab=lulus" class="nav-link py-1" id="sub-lulus" style="font-size:0.75rem;">Lulus</a>
+                <a href="siswa.html?tab=keluar" class="nav-link py-1" id="sub-keluar" style="font-size:0.75rem;">Keluar</a>
+            </div>
+            <a href="kaldik.html" class="nav-link"><i class="fas fa-calendar-alt" style="width:20px;text-align:center;"></i> Kaldik</a>
+            <a href="guru.html" class="nav-link"><i class="fas fa-chalkboard-teacher" style="width:20px;text-align:center;"></i> Guru</a>
+            <a href="pengaturan.html" class="nav-link"><i class="fas fa-cog" style="width:20px;text-align:center;"></i> Pengaturan</a>
+            <a href="#" class="nav-link text-danger mt-4"><i class="fas fa-power-off" style="width:20px;text-align:center;"></i> Keluar</a>
+        </div>
+    </nav>
+
+    <!-- CONTENT -->
+    <div class="main-wrapper">
+        <div class="breadcrumb-container">Buku Induk / Siswa / <span id="bread-status">Aktif</span></div>
+        <div class="content-container">
+            <div class="siswa-layout">
+                
+                <!-- GRID DATA SISWA -->
+                <div class="siswa-grid">
+                    
+                    <!-- Toolbar Atas (Filter Utama & Search) -->
+                    <div class="toolbar-row top justify-content-between">
+                        <div class="d-flex gap-2">
+                            <select id="filterJurusan" class="form-select-filter" style="width: 180px;" onchange="applyFilters()">
+                                <option value="">Semua Jurusan</option>
+                                <option value="DKV">DKV</option>
+                                <option value="TKJ">TKJ</option>
+                                <option value="AKL">AKL</option>
+                            </select>
+                            <select id="filterKelas" class="form-select-filter" style="width: 150px;" onchange="applyFilters()">
+                                <option value="">Semua Kelas</option>
+                                <option value="X">Kelas X</option>
+                                <option value="XI">Kelas XI</option>
+                                <option value="XII">Kelas XII</option>
+                            </select>
+                        </div>
+                        <input type="text" id="searchInput" class="input-search-filter" placeholder="Cari Siswa..." oninput="applyFilters()">
+                    </div>
+
+                    <!-- Toolbar Bawah (Detail Filter & Actions) -->
+                    <div class="toolbar-row justify-content-between">
+                        <div class="d-flex gap-2 align-items-center">
+                            <!-- Filter Rombel -->
+                            <select id="filterRombel" class="form-select-filter" style="width: 160px; background-color: #f8f9fa;" onchange="applyFilters()">
+                                <option value="">Semua Rombel</option>
+                                <!-- JS Populated -->
+                            </select>
+
+                            <!-- Pilihan Tampilan -->
+                            <div class="dropdown">
+                                <button class="btn btn-light btn-sm border dropdown-toggle d-flex align-items-center gap-2" data-bs-toggle="dropdown" id="viewBtn">
+                                    <i class="fas fa-list-ul text-primary"></i> Daftar
+                                </button>
+                                <ul class="dropdown-menu shadow-sm border-0">
+                                    <li><a class="dropdown-item small" href="#" onclick="switchView('table')"><i class="fas fa-list me-2"></i> Daftar</a></li>
+                                    <li><a class="dropdown-item small" href="#" onclick="switchView('grid')"><i class="fas fa-th-large me-2"></i> Kartu</a></li>
+                                </ul>
+                            </div>
+
+                            <!-- Filter & Sortir -->
+                            <div class="dropdown">
+                                <button class="btn btn-light btn-sm border dropdown-toggle d-flex align-items-center gap-2" data-bs-toggle="dropdown">
+                                    <i class="fas fa-sort-amount-down text-muted"></i> Urutkan
+                                </button>
+                                <div class="dropdown-menu dropdown-menu-filter shadow border-0 p-3" style="min-width: 220px;">
+                                    <span class="filter-label" style="font-size:0.7rem; font-weight:700; color:#aaa; display:block; margin-bottom:5px;">Kolom</span>
+                                    <div class="mb-2">
+                                        <div class="form-check"><input class="form-check-input" type="radio" name="sortField" id="sortNIS" value="nis" checked onchange="applyFilters()"><label class="form-check-label small" for="sortNIS">NIS / NISN</label></div>
+                                        <div class="form-check"><input class="form-check-input" type="radio" name="sortField" id="sortNama" value="nama" onchange="applyFilters()"><label class="form-check-label small" for="sortNama">Nama Lengkap</label></div>
+                                        <div class="form-check"><input class="form-check-input" type="radio" name="sortField" id="sortGender" value="gender" onchange="applyFilters()"><label class="form-check-label small" for="sortGender">Jenis Kelamin</label></div>
+                                        <div class="form-check"><input class="form-check-input" type="radio" name="sortField" id="sortJurusan" value="jurusan" onchange="applyFilters()"><label class="form-check-label small" for="sortJurusan">Jurusan</label></div>
+                                        <div class="form-check"><input class="form-check-input" type="radio" name="sortField" id="sortKelas" value="kelas" onchange="applyFilters()"><label class="form-check-label small" for="sortKelas">Kelas</label></div>
+                                        <div class="form-check"><input class="form-check-input" type="radio" name="sortField" id="sortDomisili" value="domisili" onchange="applyFilters()"><label class="form-check-label small" for="sortDomisili">Domisili</label></div>
+                                        <!-- Opsi Khusus Lulus/Keluar -->
+                                        <div class="form-check" id="optSortYear" style="display:none;"><input class="form-check-input" type="radio" name="sortField" id="sortYear" value="tahun" onchange="applyFilters()"><label class="form-check-label small" for="sortYear">Tahun</label></div>
+                                    </div>
+                                    <hr class="my-1">
+                                    <span class="filter-label" style="font-size:0.7rem; font-weight:700; color:#aaa; display:block; margin:5px 0;">Urutan</span>
+                                    <div class="mb-2">
+                                        <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="sortOrder" id="sortAsc" value="asc" checked onchange="applyFilters()"><label class="form-check-label small" for="sortAsc">A-Z</label></div>
+                                        <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="sortOrder" id="sortDesc" value="desc" onchange="applyFilters()"><label class="form-check-label small" for="sortDesc">Z-A</label></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex gap-2">
+                            <button class="btn-pro" onclick="window.print()"><i class="fas fa-print"></i> Cetak</button>
+                            <button class="btn-pro text-success"><i class="fas fa-file-excel"></i> Ekspor</button>
+                            <button class="btn-pro text-danger" onclick="deleteSelected()"><i class="fas fa-trash-alt"></i> Hapus</button>
+                            <!-- Tombol Tambah (Hanya Aktif) -->
+                            <button class="btn-pro btn-pro-primary" id="btnAddSiswa" onclick="openEditModal(null)"><i class="fas fa-plus"></i> Tambah</button>
+                        </div>
+                    </div>
+
+                    <!-- VIEW: TABEL -->
+                    <div id="tableView" class="table-responsive">
+                        <table class="table-custom">
+                            <thead>
+                                <tr id="table-head">
+                                    <th width="1%"><input type="checkbox" id="checkAll" onclick="toggleCheckAll()"></th>
+                                    <th>NIS</th><th>NISN</th><th>Nama Lengkap</th><th>L/P</th><th>Jurusan</th><th>Kelas</th><th>Domisili</th>
+                                    <th class="text-end">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-body">
+                                <!-- Data populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- VIEW: KARTU (GRID) -->
+                    <div id="gridView" class="grid-view-container">
+                        <!-- Populated by JS -->
+                    </div>
+
+                    <!-- FOOTER PAGINATION -->
+                    <div class="d-flex justify-content-between mt-auto pt-3 border-top small text-muted align-items-center">
+                        <div>
+                            Laki-Laki: <b class="text-primary" id="ft-l">0</b> &nbsp;|&nbsp; 
+                            Perempuan: <b class="text-primary" id="ft-p">0</b>
+                        </div>
+                        <div class="d-flex align-items-center gap-3">
+                            <span id="ft-total">Total 0 Data</span>
+                            
+                            <!-- Items Per Page Select -->
+                            <div class="d-flex align-items-center gap-1 border-end pe-3 me-1">
+                                <span class="text-muted">Tampilkan</span>
+                                <select id="itemsPerPageSelect" class="form-select form-select-sm py-0 px-2 border-0 fw-bold text-primary bg-light" style="width:auto; font-size:0.75rem; cursor:pointer;" onchange="changeItemsPerPage()">
+                                    <option value="15">15</option>
+                                    <option value="50">50</option>
+                                    <option value="100">100</option>
+                                    <option value="all">Semua</option>
+                                </select>
+                            </div>
+
+                            <div class="btn-group shadow-sm">
+                                <button class="btn btn-sm btn-outline-secondary border px-3" onclick="prevPage()">&lt;</button>
+                                <button class="btn btn-sm btn-primary border px-3" id="pageIndicator">1</button>
+                                <button class="btn btn-sm btn-outline-secondary border px-3" onclick="nextPage()">&gt;</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PANEL KANAN (PREVIEW) -->
+                <div class="siswa-right-panel hidden" id="siswaPanel">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <button class="btn btn-sm btn-light border rounded-circle" style="width:30px; height:30px;" onclick="closePanel()" title="Tutup Panel"><i class="fas fa-times"></i></button>
+                        <span class="badge bg-success bg-opacity-10 text-success border border-success px-2" id="p_status">Aktif</span>
+                    </div>
+                    
+                    <div class="text-center mb-4">
+                        <div class="bg-light border rounded p-1 d-inline-block shadow-sm mb-3">
+                            <img id="p_foto" src="img/pasfoto_kosong.png" style="height:160px; width:120px; object-fit:cover; border-radius:4px;" onerror="this.src='img/pasfoto_kosong.png'">
+                        </div>
+                        <h6 class="fw-bold m-0" id="p_nama">Pilih Siswa</h6>
+                        <span class="text-muted small" id="p_nis">...</span>
+                    </div>
+
+                    <div class="flex-grow-1 overflow-auto">
+                        <h6 class="small fw-bold text-uppercase text-muted border-bottom pb-1 mb-2">Detail Singkat</h6>
+                        <div class="d-flex justify-content-between small mb-2"><span class="text-muted">Kelas</span><span class="fw-bold text-dark" id="p_kelas">-</span></div>
+                        <div class="d-flex justify-content-between small mb-2"><span class="text-muted">Jurusan</span><span class="fw-bold text-dark" id="p_jurusan">-</span></div>
+                        <div class="d-flex justify-content-between small mb-2"><span class="text-muted">Domisili</span><span class="fw-bold text-dark" id="p_domisili">-</span></div>
+                        <div class="d-flex justify-content-between small mb-2"><span class="text-muted">Tgl Lahir</span><span class="fw-bold text-dark">-</span></div>
+                    </div>
+
+                    <button class="btn btn-outline-primary btn-sm w-100 mt-3" onclick="openEditFromPanel()"><i class="far fa-edit me-1"></i> Edit Lengkap</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL EDIT SISWA -->
+    <div class="modal fade" id="modalEditSiswa" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold text-primary" id="modalTitle">Data Siswa</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body bg-light">
+                    <div class="row h-100">
+                        <div class="col-md-3">
+                            <div class="modal-edit-nav nav flex-column nav-pills" id="v-pills-tab">
+                                <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tab-a">A. Foto</button>
+                                <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-b">B. Identitas</button>
+                                <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-c">C. Orang Tua</button>
+                                <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-d">D. Tempat Tinggal</button>
+                                <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-e">E. Pendidikan</button>
+                                <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-f">F. Kesehatan</button>
+                                <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-g">G. File Pendukung</button>
+                                <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-h">H. Status</button>
+                            </div>
+                        </div>
+                        <div class="col-md-9">
+                            <form id="formSiswa">
+                                <input type="hidden" id="editId">
+                                <div class="tab-content bg-white p-4 rounded border h-100 overflow-auto">
+                                    <!-- A. Foto -->
+                                    <div class="tab-pane fade show active" id="tab-a">
+                                        <div class="form-section-title">A. Foto Siswa</div>
+                                        <div class="row">
+                                            <div class="col-6 text-center">
+                                                <div class="border p-2 bg-light mb-2"><img src="img/pasfoto_kosong.png" style="height:150px;" id="previewMasuk"></div>
+                                                <label class="btn btn-sm btn-outline-primary">Upload Foto Masuk <input type="file" hidden></label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- B. Identitas -->
+                                    <div class="tab-pane fade" id="tab-b">
+                                        <div class="form-section-title">B. Identitas Siswa</div>
+                                        <div class="row g-3">
+                                            <div class="col-md-6"><label class="form-group-label">NIS</label><input type="text" class="form-control form-control-custom" id="inNIS"></div>
+                                            <div class="col-md-6"><label class="form-group-label">NISN</label><input type="text" class="form-control form-control-custom" id="inNISN"></div>
+                                            <div class="col-md-12"><label class="form-group-label">Nama Lengkap</label><input type="text" class="form-control form-control-custom" id="inNama"></div>
+                                            <div class="col-md-6"><label class="form-group-label">Jenis Kelamin</label><select class="form-select form-control-custom" id="inJK"><option value="L">Laki-Laki</option><option value="P">Perempuan</option></select></div>
+                                            <div class="col-md-6"><label class="form-group-label">Jurusan</label><select class="form-select form-control-custom" id="inJurusan"><option>DKV</option><option>TKJ</option><option>AKL</option></select></div>
+                                            <div class="col-md-6"><label class="form-group-label">Kelas</label><input type="text" class="form-control form-control-custom" id="inKelas"></div>
+                                            <div class="col-md-6"><label class="form-group-label">Domisili</label><select class="form-select form-control-custom" id="inDomisili"><option>Pondok</option><option>Rumah</option></select></div>
+                                        </div>
+                                    </div>
+                                    <!-- H. Status -->
+                                    <div class="tab-pane fade" id="tab-h">
+                                        <div class="form-section-title">H. Status</div>
+                                        <select class="form-select form-control-custom" id="inStatus">
+                                            <option value="Aktif">Aktif</option>
+                                            <option value="Lulus">Lulus</option>
+                                            <option value="Keluar">Keluar</option>
+                                        </select>
+                                    </div>
+                                    <!-- Placeholders -->
+                                    <div class="tab-pane fade" id="tab-c"><p class="text-muted text-center py-5">Form Orang Tua...</p></div>
+                                    <div class="tab-pane fade" id="tab-d"><p class="text-muted text-center py-5">Form Alamat...</p></div>
+                                    <div class="tab-pane fade" id="tab-e"><p class="text-muted text-center py-5">Form Pendidikan...</p></div>
+                                    <div class="tab-pane fade" id="tab-f"><p class="text-muted text-center py-5">Form Kesehatan...</p></div>
+                                    <div class="tab-pane fade" id="tab-g"><p class="text-muted text-center py-5">Form File...</p></div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary" onclick="saveSiswa()">Simpan Data</button></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // --- 1. DATA - STATIC ARRAY (20 ENTRIES) ---
+        const students = [
+            // --- AKTIF (12 Data) ---
+            // Kelas X (4)
+            {id:1, nis:"1001", nisn:"001001", nama:"Aditya Pratama", gender:"L", status:"Aktif", domisili:"Pondok", jurusan:"DKV", kelas:"X DKV 1", lulusan:null, alasan:null},
+            {id:2, nis:"1002", nisn:"001002", nama:"Bayu Saputra", gender:"L", status:"Aktif", domisili:"Rumah", jurusan:"DKV", kelas:"X DKV 1", lulusan:null, alasan:null},
+            {id:3, nis:"1003", nisn:"001003", nama:"Citra Lestari", gender:"P", status:"Aktif", domisili:"Pondok", jurusan:"DKV", kelas:"X DKV 1", lulusan:null, alasan:null},
+            {id:4, nis:"1004", nisn:"001004", nama:"Dina Mariana", gender:"P", status:"Aktif", domisili:"Pondok", jurusan:"DKV", kelas:"X DKV 1", lulusan:null, alasan:null},
+            // Kelas XI (4)
+            {id:5, nis:"1005", nisn:"001005", nama:"Eko Wahyudi", gender:"L", status:"Aktif", domisili:"Rumah", jurusan:"DKV", kelas:"XI DKV 1", lulusan:null, alasan:null},
+            {id:6, nis:"1006", nisn:"001006", nama:"Fajar Sidiq", gender:"L", status:"Aktif", domisili:"Pondok", jurusan:"TKJ", kelas:"XI TKJ 1", lulusan:null, alasan:null},
+            {id:7, nis:"1007", nisn:"001007", nama:"Gita Gutawa", gender:"P", status:"Aktif", domisili:"Rumah", jurusan:"TKJ", kelas:"XI TKJ 1", lulusan:null, alasan:null},
+            {id:8, nis:"1008", nisn:"001008", nama:"Hadi Sucipto", gender:"L", status:"Aktif", domisili:"Pondok", jurusan:"TKJ", kelas:"XI TKJ 1", lulusan:null, alasan:null},
+            // Kelas XII (4)
+            {id:9, nis:"1009", nisn:"001009", nama:"Indah Permata", gender:"P", status:"Aktif", domisili:"Pondok", jurusan:"TKJ", kelas:"XII TKJ 1", lulusan:null, alasan:null},
+            {id:10, nis:"1010", nisn:"001010", nama:"Joko Anwar", gender:"L", status:"Aktif", domisili:"Rumah", jurusan:"TKJ", kelas:"XII TKJ 1", lulusan:null, alasan:null},
+            {id:11, nis:"1011", nisn:"001011", nama:"Kartika Putri", gender:"P", status:"Aktif", domisili:"Pondok", jurusan:"AKL", kelas:"XII AKL 1", lulusan:null, alasan:null},
+            {id:12, nis:"1012", nisn:"001012", nama:"Lukman Hakim", gender:"L", status:"Aktif", domisili:"Rumah", jurusan:"AKL", kelas:"XII AKL 1", lulusan:null, alasan:null},
+
+            // --- LULUS (6 Data) ---
+            {id:13, nis:"1013", nisn:"001013", nama:"Maya Estianty", gender:"P", status:"Lulus", domisili:"Pondok", jurusan:"AKL", kelas:"-", lulusan:"2024", alasan:null},
+            {id:14, nis:"1014", nisn:"001014", nama:"Nanda Putra", gender:"L", status:"Lulus", domisili:"Rumah", jurusan:"AKL", kelas:"-", lulusan:"2024", alasan:null},
+            {id:15, nis:"1015", nisn:"001015", nama:"Oki Setiana", gender:"P", status:"Lulus", domisili:"Pondok", jurusan:"AKL", kelas:"-", lulusan:"2024", alasan:null},
+            {id:16, nis:"1016", nisn:"001016", nama:"Putra Siregar", gender:"L", status:"Lulus", domisili:"Rumah", jurusan:"DKV", kelas:"-", lulusan:"2023", alasan:null},
+            {id:17, nis:"1017", nisn:"001017", nama:"Qory Gore", gender:"L", status:"Lulus", domisili:"Pondok", jurusan:"DKV", kelas:"-", lulusan:"2023", alasan:null},
+            {id:18, nis:"1018", nisn:"001018", nama:"Rina Nose", gender:"P", status:"Lulus", domisili:"Rumah", jurusan:"DKV", kelas:"-", lulusan:"2023", alasan:null},
+
+            // --- KELUAR (2 Data) ---
+            {id:19, nis:"1019", nisn:"001019", nama:"Sule Prikitiew", gender:"L", status:"Keluar", domisili:"Pondok", jurusan:"DKV", kelas:"-", lulusan:null, alasan:"Pindah"},
+            {id:20, nis:"1020", nisn:"001020", nama:"Tukul Arwana", gender:"L", status:"Keluar", domisili:"Rumah", jurusan:"TKJ", kelas:"-", lulusan:null, alasan:"Mengundurkan Diri"}
+        ];
+
+        // --- 2. CONFIG & STATE ---
+        let currentTab = 'aktif';
+        let currentPage = 1;
+        let itemsPerPage = 15; 
+        let filteredData = [];
+        let viewMode = 'table';
+        let selectedStudentId = null;
+
+        // --- 3. INIT ---
+        document.addEventListener("DOMContentLoaded", () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            currentTab = urlParams.get('tab') || 'aktif';
+            
+            // Set Sidebar Active
+            if(currentTab === 'lulus') document.getElementById('sub-lulus').style.color = 'var(--primary-blue)';
+            else if(currentTab === 'keluar') document.getElementById('sub-keluar').style.color = 'var(--primary-blue)';
+            else document.getElementById('sub-aktif').style.color = 'var(--primary-blue)';
+
+            document.getElementById('bread-status').innerText = currentTab.charAt(0).toUpperCase() + currentTab.slice(1);
+            
+            // Toggle UI Elements based on Tab
+            if(currentTab === 'aktif') {
+                const btnAdd = document.getElementById('btnAddSiswa');
+                if (btnAdd) btnAdd.style.display = 'inline-flex';
+                
+                const classTabs = document.getElementById('class-tabs');
+                if (classTabs) classTabs.style.display = 'flex';
+                
+                const optSort = document.getElementById('optSortYear');
+                if (optSort) optSort.style.display = 'none';
+            } else {
+                const btnAdd = document.getElementById('btnAddSiswa');
+                if (btnAdd) btnAdd.style.display = 'none';
+
+                const classTabs = document.getElementById('class-tabs');
+                if (classTabs) classTabs.style.display = 'none';
+
+                const optSort = document.getElementById('optSortYear');
+                if (optSort) optSort.style.display = 'block';
+            }
+
+            populateRombelFilter();
+            applyFilters();
+        });
+
+        // --- 4. LOGIC ---
+        function populateRombelFilter() {
+            const rombels = [...new Set(students.filter(s=>s.kelas !== '-').map(s => s.kelas))].sort();
+            const sel = document.getElementById('filterRombel');
+            if (!sel) return;
+            sel.innerHTML = '<option value="">Semua Rombel</option>';
+            rombels.forEach(r => sel.innerHTML += `<option value="${r}">${r}</option>`);
+        }
+
+        function applyFilters() {
+            const jur = document.getElementById('filterJurusan').value;
+            const kls = document.getElementById('filterKelas').value;
+            const rbl = document.getElementById('filterRombel').value;
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            
+            const sortField = document.querySelector('input[name="sortField"]:checked').value;
+            const sortOrder = document.querySelector('input[name="sortOrder"]:checked').value;
+
+            filteredData = students.filter(s => {
+                const matchTab = s.status.toLowerCase() === currentTab;
+                const matchJur = jur ? s.jurusan === jur : true;
+                const matchKls = kls ? s.kelas.startsWith(kls) : true;
+                const matchRbl = rbl ? s.kelas === rbl : true;
+                const matchSearch = s.nama.toLowerCase().includes(search) || s.nis.includes(search);
+                return matchTab && matchJur && matchKls && matchRbl && matchSearch;
+            });
+
+            // Sorting
+            filteredData.sort((a, b) => {
+                let valA, valB;
+                if (sortField === 'kelas') { valA = a.kelas + a.jurusan; valB = b.kelas + b.jurusan; }
+                else if (sortField === 'tahun') { valA = a.lulusan || ""; valB = b.lulusan || ""; } 
+                else { valA = a[sortField] || ""; valB = b[sortField] || ""; }
+
+                if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+                if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+                return 0;
+            });
+
+            currentPage = 1;
+            renderData();
+        }
+
+        function changeItemsPerPage() {
+            const val = document.getElementById('itemsPerPageSelect').value;
+            if (val === 'all') {
+                itemsPerPage = filteredData.length > 0 ? filteredData.length : 1;
+            } else {
+                itemsPerPage = parseInt(val);
+            }
+            currentPage = 1;
+            renderData();
+        }
+
+        function renderData() {
+            const start = (currentPage - 1) * itemsPerPage;
+            const end = start + itemsPerPage;
+            const pageData = filteredData.slice(start, end);
+
+            const tbody = document.getElementById('table-body');
+            const gridContainer = document.getElementById('gridView');
+            const tableContainer = document.getElementById('tableView');
+
+            tbody.innerHTML = '';
+            gridContainer.innerHTML = '';
+
+            let extraCol = 'Kelas';
+            if(currentTab === 'lulus') extraCol = 'Tahun Lulus';
+            else if(currentTab === 'keluar') extraCol = 'Alasan';
+            
+            if (viewMode === 'table') {
+                tableContainer.style.display = 'block';
+                gridContainer.style.display = 'none';
+                const headTh = document.querySelector('#table-head th:nth-child(7)');
+                if (headTh) headTh.innerText = extraCol;
+
+                pageData.forEach(s => {
+                    let extraVal = s.kelas;
+                    if(currentTab === 'lulus') extraVal = `<span class="badge bg-success bg-opacity-10 text-success">${s.lulusan}</span>`;
+                    else if(currentTab === 'keluar') extraVal = `<span class="badge bg-warning bg-opacity-10 text-dark">${s.alasan}</span>`;
+
+                    const tr = document.createElement('tr');
+                    tr.onclick = () => selectRow(tr, s);
+                    tr.innerHTML = `
+                        <td><input type="checkbox" class="row-check" value="${s.id}" onclick="event.stopPropagation()"></td>
+                        <td>${s.nis}</td><td>${s.nisn}</td>
+                        <td class="fw-bold text-truncate" style="max-width:150px;">${s.nama}</td>
+                        <td>${s.gender}</td><td>${s.jurusan}</td><td>${extraVal}</td><td>${s.domisili}</td>
+                        <td class="text-end">
+                            <i class="fas fa-info-circle text-info mx-1" onclick="selectRow(this.closest('tr'), ${JSON.stringify(s).replace(/"/g, '&quot;')})" title="Detail"></i>
+                            <i class="far fa-edit text-warning mx-1" title="Ubah" onclick="event.stopPropagation(); openEditModal(${s.id})"></i>
+                            <i class="fas fa-trash-alt text-danger mx-1" title="Hapus" onclick="event.stopPropagation(); deleteRow(${s.id})"></i>
+                            <i class="fas fa-print text-secondary mx-1" title="Cetak" onclick="event.stopPropagation(); alert('Cetak ${s.nama}')"></i>
+                        </td>`;
+                    tbody.appendChild(tr);
+                });
+            } else {
+                tableContainer.style.display = 'none';
+                gridContainer.style.display = 'grid';
+                pageData.forEach(s => {
+                    const card = document.createElement('div');
+                    card.className = 'student-card';
+                    card.onclick = () => selectCard(card, s);
+                    card.innerHTML = `
+                        <input type="checkbox" class="row-check card-check" value="${s.id}" onclick="event.stopPropagation()">
+                        <img src="img/pasfoto_kosong.png" onerror="this.src='img/pasfoto_kosong.png'">
+                        <div class="fw-bold text-truncate mb-1">${s.nama}</div>
+                        <div class="small text-muted mb-2">${s.nis}</div>
+                        <span class="badge bg-light text-primary border">${s.kelas !== '-' ? s.kelas : s.status}</span>`;
+                    gridContainer.appendChild(card);
+                });
+            }
+            updateFooterStats();
+        }
+
+        function updateFooterStats() {
+            const l = filteredData.filter(s => s.gender === 'L').length;
+            const p = filteredData.filter(s => s.gender === 'P').length;
+            document.getElementById('ft-l').innerText = l;
+            document.getElementById('ft-p').innerText = p;
+            document.getElementById('ft-total').innerText = `Total ${filteredData.length} Data`;
+            document.getElementById('pageIndicator').innerText = currentPage;
+        }
+
+        // --- HELPERS ---
+        function switchView(mode) {
+            viewMode = mode;
+            document.getElementById('viewBtn').innerHTML = mode === 'table' ? '<i class="fas fa-list-ul text-primary"></i> Daftar' : '<i class="fas fa-th-large text-primary"></i> Kartu';
+            renderData();
+        }
+        function prevPage() { if(currentPage > 1) { currentPage--; renderData(); } }
+        function nextPage() { 
+            const maxPage = Math.ceil(filteredData.length / itemsPerPage);
+            if(currentPage < maxPage) { currentPage++; renderData(); } 
+        }
+        function toggleCheckAll() {
+            const master = document.getElementById('checkAll');
+            document.querySelectorAll('.row-check').forEach(cb => cb.checked = master.checked);
+        }
+        function selectRow(el, data) {
+            document.querySelectorAll('tr').forEach(t=>t.classList.remove('selected'));
+            el.classList.add('selected');
+            showPanel(data);
+        }
+        function selectCard(el, data) {
+            document.querySelectorAll('.student-card').forEach(c => c.classList.remove('selected'));
+            el.classList.add('selected');
+            showPanel(data);
+        }
+        function showPanel(data) {
+            selectedStudentId = data.id;
+            const p = document.getElementById('siswaPanel');
+            
+            if(p.classList.contains('hidden')) { p.classList.remove('hidden'); }
+            
+            document.getElementById('p_nama').innerText = data.nama;
+            document.getElementById('p_nis').innerText = `${data.nis} / ${data.nisn}`;
+            document.getElementById('p_kelas').innerText = data.kelas;
+            document.getElementById('p_jurusan').innerText = data.jurusan;
+            document.getElementById('p_domisili').innerText = data.domisili;
+            document.getElementById('p_status').innerText = data.status;
+            
+            const badgeClass = data.status === 'Aktif' ? 'bg-success' : (data.status === 'Lulus' ? 'bg-primary' : 'bg-warning text-dark');
+            const statusBadge = document.getElementById('p_status');
+            statusBadge.className = `badge bg-opacity-10 border px-2 ${badgeClass.replace('bg-', 'text-')} border-${badgeClass.replace('bg-', '')}`;
+        }
+        function closePanel() {
+            const p = document.getElementById('siswaPanel');
+            p.classList.add('hidden');
+        }
+
+        function openEditModal(id) {
+            const modalTitle = document.getElementById('modalTitle');
+            const modal = new bootstrap.Modal(document.getElementById('modalEditSiswa'));
+            if(id) {
+                const s = students.find(x => x.id === id);
+                modalTitle.innerText = "Ubah Data Siswa";
+                document.getElementById('editId').value = s.id;
+                document.getElementById('inNIS').value = s.nis;
+                document.getElementById('inNISN').value = s.nisn;
+                document.getElementById('inNama').value = s.nama;
+                document.getElementById('inJK').value = s.gender;
+                document.getElementById('inJurusan').value = s.jurusan;
+                document.getElementById('inKelas').value = s.kelas;
+                document.getElementById('inDomisili').value = s.domisili;
+                document.getElementById('inStatus').value = s.status;
+            } else {
+                modalTitle.innerText = "Tambah Siswa Baru";
+                document.getElementById('formSiswa').reset();
+                document.getElementById('editId').value = '';
+                document.getElementById('inStatus').value = 'Aktif';
+            }
+            modal.show();
+        }
+        function openEditFromPanel() { if(selectedStudentId) openEditModal(selectedStudentId); }
+        function saveSiswa() {
+            const id = document.getElementById('editId').value;
+            const newData = {
+                id: id ? parseInt(id) : Date.now(),
+                nis: document.getElementById('inNIS').value,
+                nisn: document.getElementById('inNISN').value,
+                nama: document.getElementById('inNama').value,
+                gender: document.getElementById('inJK').value,
+                jurusan: document.getElementById('inJurusan').value,
+                kelas: document.getElementById('inKelas').value,
+                domisili: document.getElementById('inDomisili').value,
+                status: document.getElementById('inStatus').value,
+                lulusan: null, alasan: null
+            };
+            if(!newData.nama || !newData.nis) return alert("Nama dan NIS wajib diisi!");
+            if(id) { const idx = students.findIndex(s => s.id == id); students[idx] = newData; } 
+            else { students.push(newData); }
+            bootstrap.Modal.getInstance(document.getElementById('modalEditSiswa')).hide();
+            applyFilters();
+        }
+        function deleteRow(id) {
+            if(confirm('Hapus data siswa ini?')) { students = students.filter(s => s.id !== id); applyFilters(); }
+        }
+        function deleteSelected() {
+            const checked = Array.from(document.querySelectorAll('.row-check:checked')).map(cb => parseInt(cb.value));
+            if(checked.length === 0) return alert("Pilih data yang akan dihapus!");
+            if(confirm(`Hapus ${checked.length} siswa terpilih?`)) {
+                students = students.filter(s => !checked.includes(s.id));
+                applyFilters();
+                document.getElementById('checkAll').checked = false;
+            }
+        }
+        setInterval(()=>{
+            const n=new Date();
+            document.getElementById('jamHeader').innerText = n.toLocaleTimeString('en-GB').replace(/:/g,'.');
+            document.getElementById('tglHeader').innerText = n.toLocaleDateString('id-ID', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+        }, 1000);
+    </script>
+</body>
+</html>

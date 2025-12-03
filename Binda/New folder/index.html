@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Binda - Sistem Informasi Sekolah</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js untuk Grafik Beranda -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            --primary-blue: #0d6efd;
+            --primary-green: #198754;
+            --primary-orange: #fd7e14;
+            --bg-light: #f4f6f9;
+            --text-grey: #6c757d;
+            --sidebar-width: 240px;
+            --panel-width: 320px;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-light);
+            font-size: 0.85rem;
+            color: #333;
+            overflow-x: hidden;
+            margin: 0;
+        }
+
+        /* --- 1. PARENT: HEADER --- */
+        .top-header {
+            background: white;
+            height: 65px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between; /* Kiri, Tengah, Kanan */
+            padding: 0 25px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.05);
+            position: fixed;
+            top: 0; left: 0; right: 0; z-index: 1000;
+        }
+
+        /* Header Kiri: Logo + Search */
+        .header-left { display: flex; align-items: center; gap: 30px; width: 300px; }
+        .header-search { 
+            display: flex; align-items: center; gap: 10px; color: #ccc; 
+            background: #fff; padding: 5px 10px; border-radius: 20px;
+        }
+        .header-search input { border: none; outline: none; font-size: 0.85rem; color: #666; width: 150px; }
+
+        /* Header Tengah: Waktu */
+        .header-center { text-align: center; }
+        .clock-time { font-weight: 600; font-size: 1rem; color: #333; }
+        .clock-date { font-size: 0.75rem; color: #0d6efd; font-weight: 500; }
+
+        /* Header Kanan: Sekolah */
+        .header-right { display: flex; align-items: center; gap: 15px; width: 300px; justify-content: flex-end; }
+        .school-info { text-align: right; }
+        .school-info h6 { margin: 0; font-weight: 700; font-size: 0.9rem; }
+        .school-info span { font-size: 0.7rem; color: #666; }
+        .school-info span a { text-decoration: none; color: #0d6efd; }
+
+        /* --- 2. PARENT: SIDEBAR --- */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: white;
+            position: fixed;
+            top: 65px; bottom: 0; left: 0;
+            padding-top: 20px;
+            overflow-y: auto;
+            border-right: 1px solid #e9ecef;
+            z-index: 900;
+        }
+        .nav-item { margin-bottom: 2px; }
+        .nav-link {
+            color: var(--text-grey); padding: 12px 25px; display: flex; align-items: center; gap: 15px;
+            text-decoration: none; font-weight: 500; transition: 0.2s; position: relative;
+        }
+        .nav-link:hover { color: var(--primary-blue); background: #f8f9fa; }
+        
+        /* Menu Aktif (Biru Penuh) */
+        .nav-link.active-menu { 
+            background: var(--primary-blue); color: white; 
+            border-radius: 0 50px 50px 0; margin-right: 15px; 
+        }
+        
+        .submenu { display: none; background: white; padding-left: 0; }
+        .submenu.show { display: block; }
+
+        /* --- 3. PARENT: MAIN WRAPPER & BREADCRUMB --- */
+        .main-wrapper {
+            margin-left: var(--sidebar-width);
+            margin-top: 65px;
+            min-height: calc(100vh - 65px);
+            display: flex; flex-direction: column;
+        }
+        
+        /* Breadcrumb Global */
+        .breadcrumb-container {
+            padding: 15px 30px;
+            background: var(--bg-light);
+            font-size: 0.9rem; font-weight: 500; color: #888;
+        }
+        .breadcrumb-container span { color: var(--primary-blue); font-weight: 600; }
+
+        /* --- 4. CHILD: CONTENT AREAS --- */
+        .content-container { padding: 0 30px 30px 30px; flex-grow: 1; position: relative; }
+        
+        /* A. BERANDA STYLE */
+        .dashboard-grid { display: grid; grid-template-columns: 3fr 1fr; gap: 20px; }
+        .dashboard-left { display: flex; flex-direction: column; gap: 20px; }
+        
+        /* Stats Cards */
+        .stats-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .stat-card {
+            background: white; border-radius: 10px; padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02); display: flex; position: relative; overflow: hidden;
+        }
+        .stat-icon-bg {
+            position: absolute; left: -10px; bottom: -10px; font-size: 5rem; opacity: 0.1;
+        }
+        .stat-content { display: flex; gap: 15px; width: 100%; }
+        .stat-left-box {
+            width: 90px; height: 70px; border-radius: 8px; color: white;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .stat-left-box span { font-size: 0.7rem; font-weight: 500; }
+        .stat-left-box h3 { font-size: 1.8rem; font-weight: 700; margin: 0; line-height: 1; }
+        .stat-details { flex-grow: 1; font-size: 0.75rem; color: #555; display: grid; grid-template-columns: 1fr 1fr; gap: 5px;}
+        .stat-details b { color: var(--primary-blue); }
+        .btn-detail-arrow {
+            position: absolute; bottom: 10px; right: 10px; color: var(--primary-blue); font-size: 0.8rem; cursor: pointer;
+        }
+
+        /* Charts Section */
+        .charts-row {
+            background: white; border-radius: 10px; padding: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+            min-height: 300px;
+        }
+        .charts-flex { display: flex; justify-content: space-around; align-items: flex-end; margin-top: 20px; }
+        .chart-box { width: 45%; position: relative; }
+
+        /* Dashboard Right Panel (Dark) */
+        .dashboard-right {
+            background: white; border-radius: 10px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+        .db-right-top { padding: 20px; background: white; flex-grow: 1; }
+        .class-list-item {
+            font-size: 0.75rem; margin-bottom: 15px; border-bottom: 1px solid #f0f0f0; padding-bottom: 10px;
+        }
+        .class-list-item h6 { font-size: 0.8rem; font-weight: 600; color: #333; margin-bottom: 3px; }
+        .class-list-item span { color: var(--primary-blue); cursor: pointer; }
+        
+        .db-right-bottom {
+            background: #0f172a; /* Dark Blue Theme */
+            color: white; padding: 30px 20px; text-align: center;
+            position: relative; min-height: 350px;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+        /* Decorasi CSS untuk "Langit Malam" */
+        .moon-decor {
+            width: 80px; height: 80px; background: #f1c40f; border-radius: 50%;
+            position: absolute; top: 40px; right: 30px; box-shadow: 0 0 20px rgba(241, 196, 15, 0.5);
+            opacity: 0.8;
+        }
+        .moon-cover {
+            width: 70px; height: 70px; background: #0f172a; border-radius: 50%;
+            position: absolute; top: 35px; right: 45px;
+        }
+        .logo-center { width: 80px; margin-bottom: 15px; z-index: 2; position: relative; }
+        .digital-clock-big { font-size: 3rem; font-weight: 700; line-height: 1; z-index: 2; }
+        .date-big { font-size: 0.9rem; color: #aaa; margin-top: 5px; z-index: 2; background: white; color: #333; padding: 2px 15px; border-radius: 15px;}
+
+
+        /* B. SISWA LIST STYLE (Yang lama, disesuaikan layout baru) */
+        .siswa-layout { display: flex; gap: 20px; height: 100%; }
+        .siswa-grid { flex-grow: 1; background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
+        
+        .siswa-right-panel {
+            width: 280px; background: white; border-radius: 10px; padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02); display: flex; flex-direction: column; align-items: center;
+            height: fit-content; margin-right: 0; border: 1px solid #eee;
+            transition: all 0.3s;
+        }
+        .siswa-right-panel.hidden { width: 0; padding: 0; overflow: hidden; border: none; opacity: 0; }
+
+        /* Komponen Tabel & Tabs (Sama seperti sebelumnya) */
+        .box-tab { border: 1px solid #ddd; padding: 5px 20px; border-radius: 4px; cursor: pointer; color: var(--primary-blue); background: white; margin-right:5px; font-size: 0.85rem;}
+        .box-tab.active { background: var(--primary-blue); color: white; border-color: var(--primary-blue); }
+        
+        .table-custom { width: 100%; border-collapse: separate; border-spacing: 0 5px; font-size: 0.8rem; }
+        .table-custom thead th { color: var(--primary-blue); padding: 10px; border-bottom: 1px solid #eee; }
+        .table-custom tbody tr { background: white; cursor: pointer; transition: 0.2s; }
+        .table-custom tbody tr:hover { transform: translateY(-2px); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .table-custom td { padding: 10px; border-top: 1px solid #f9f9f9; border-bottom: 1px solid #f9f9f9; vertical-align: middle; }
+        .table-custom tr.selected { background: var(--primary-blue) !important; color: white; }
+        .table-custom tr.selected td { border-color: var(--primary-blue); }
+        .table-custom tr.selected .text-muted { color: #eef4ff !important; }
+
+        /* Floating Button untuk Siswa Panel */
+        .floating-expand-btn {
+            position: absolute; top: 85px; right: 30px; 
+            background: var(--primary-blue); color: white; width: 40px; height: 40px;
+            border-radius: 50%; cursor: pointer; box-shadow: 0 4px 10px rgba(13,110,253,0.3);
+            z-index: 99; display: none; align-items: center; justify-content: center;
+        }
+        
+        /* Helper */
+        .bg-blue { background: var(--primary-blue); }
+        .bg-green { background: var(--primary-green); }
+        .bg-orange { background: var(--primary-orange); }
+        .text-blue { color: var(--primary-blue); }
+    </style>
+</head>
+<body>
+
+    <!-- 1. HEADER (PARENT) -->
+    <header class="top-header">
+        <!-- Kiri -->
+        <div class="header-left">
+            <img src="{{ url_for('static', filename='img/logo_app.png') }}" height="32" alt="Binda">
+            <div class="header-search">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Pencarian">
+            </div>
+        </div>
+
+        <!-- Tengah -->
+        <div class="header-center">
+            <div class="clock-time" id="jamHeader">00.00.00</div>
+            <div class="clock-date" id="tanggalHeader">...</div>
+        </div>
+
+        <!-- Kanan -->
+        <div class="header-right">
+            <div class="school-info">
+                <h6>SMK DARUL ABROR</h6>
+                <span>masuk sebagai <a href="#">admin</a></span>
+            </div>
+            <img src="{{ url_for('static', filename='img/logo_sekolah.png') }}" height="40" alt="Sekolah">
+        </div>
+    </header>
+
+    <!-- 2. SIDEBAR (PARENT) -->
+    <nav class="sidebar">
+        <div class="nav flex-column">
+            <!-- Menu Beranda -->
+            <a href="#" class="nav-link active-menu" id="menuBeranda" onclick="showPage('beranda')">
+                <i class="fas fa-th-large" style="width:20px;text-align:center;"></i> Beranda
+            </a>
+            
+            <!-- Menu Siswa -->
+            <a href="#" class="nav-link" id="menuSiswa" onclick="toggleSubmenu('subSiswa'); showPage('siswa')">
+                <i class="fas fa-user-graduate" style="width:20px;text-align:center;"></i> Siswa
+                <i class="fas fa-chevron-down ms-auto" style="font-size:0.7rem"></i>
+            </a>
+            <div id="subSiswa" class="submenu">
+                <a href="#" class="nav-link" style="padding-left: 60px; font-size: 0.8rem; height: 35px; color: var(--primary-blue); font-weight:600;">Aktif</a>
+                <div style="padding-left: 80px;">
+                    <a href="#" style="display:block; padding:3px 0; color:#333; text-decoration:none; font-size:0.75rem">• DKV</a>
+                    <a href="#" style="display:block; padding:3px 0; color:#888; text-decoration:none; font-size:0.75rem">• TKJ</a>
+                </div>
+                <a href="#" class="nav-link" style="padding-left: 60px; font-size: 0.8rem; height: 35px;">Lulus</a>
+                <a href="#" class="nav-link" style="padding-left: 60px; font-size: 0.8rem; height: 35px;">Keluar</a>
+            </div>
+
+            <a href="#" class="nav-link"><i class="fas fa-chalkboard-teacher" style="width:20px;text-align:center;"></i> Guru/Karyawan</a>
+            <a href="#" class="nav-link"><i class="fas fa-calendar-alt" style="width:20px;text-align:center;"></i> Kaldik</a>
+            <a href="#" class="nav-link"><i class="fas fa-cog" style="width:20px;text-align:center;"></i> Pengaturan</a>
+            <a href="#" class="nav-link text-danger mt-4"><i class="fas fa-power-off" style="width:20px;text-align:center;"></i> Keluar</a>
+        </div>
+    </nav>
+
+    <!-- 3. MAIN WRAPPER -->
+    <div class="main-wrapper">
+        
+        <!-- Breadcrumb (Parent, Text Updated via JS) -->
+        <div class="breadcrumb-container" id="breadcrumb">
+            Buku Induk / <span>Pengaturan</span>
+        </div>
+
+        <div class="content-container">
+
+            <!-- === CHILD 1: HALAMAN BERANDA === -->
+            <div id="page-beranda" style="display: block;">
+                <div class="dashboard-grid">
+                    <!-- Kiri: Stats & Charts -->
+                    <div class="dashboard-left">
+                        <!-- Stats Row -->
+                        <div class="stats-row">
+                            <!-- Card Biru -->
+                            <div class="stat-card">
+                                <div class="stat-icon-bg text-blue"><i class="fas fa-user-graduate"></i></div>
+                                <div class="stat-content">
+                                    <div class="stat-left-box bg-blue">
+                                        <span>Siswa Aktif</span>
+                                        <h3>275</h3>
+                                    </div>
+                                    <div class="stat-details">
+                                        <div>Jenis Kelamin<br>Laki: <b>128</b><br>Pr: <b>147</b></div>
+                                        <div>Domisili<br>Pondok: <b>250</b><br>Luar: <b>25</b></div>
+                                    </div>
+                                </div>
+                                <i class="fas fa-external-link-alt btn-detail-arrow"></i>
+                            </div>
+
+                            <!-- Card Hijau -->
+                            <div class="stat-card">
+                                <div class="stat-icon-bg text-green"><i class="fas fa-graduation-cap"></i></div>
+                                <div class="stat-content">
+                                    <div class="stat-left-box bg-green">
+                                        <span>Siswa Lulus</span>
+                                        <h3 style="font-size:1.5rem">1853</h3>
+                                    </div>
+                                    <div class="stat-details">
+                                        <div>Jenis Kelamin<br>Laki: <b>900</b><br>Pr: <b>953</b></div>
+                                        <div>Tahun <b>2024</b><br>Jml: <b>98</b></div>
+                                    </div>
+                                </div>
+                                <i class="fas fa-external-link-alt btn-detail-arrow"></i>
+                            </div>
+
+                            <!-- Card Orange -->
+                            <div class="stat-card">
+                                <div class="stat-icon-bg text-orange"><i class="fas fa-sign-out-alt"></i></div>
+                                <div class="stat-content">
+                                    <div class="stat-left-box bg-orange">
+                                        <span>Siswa Keluar</span>
+                                        <h3>12</h3>
+                                    </div>
+                                    <div class="stat-details">
+                                        <div>Jenis Kelamin<br>Laki: <b>9</b><br>Pr: <b>3</b></div>
+                                        <div>Ket.<br>Pindah: <b>11</b><br>DO: <b>1</b></div>
+                                    </div>
+                                </div>
+                                <i class="fas fa-external-link-alt btn-detail-arrow"></i>
+                            </div>
+                        </div>
+
+                        <!-- Charts Section -->
+                        <div class="charts-row">
+                            <h5 class="fw-bold text-primary mb-1">Data Prosentase Siswa</h5>
+                            <small class="text-muted">Jumlah Siswa Per 31 Juli 2025 sebanyak : 1.819</small>
+                            
+                            <div class="charts-flex">
+                                <div class="chart-box">
+                                    <canvas id="chartGender"></canvas>
+                                    <div class="text-center mt-2 small fw-bold">Grafik Data Siswa Berdasarkan Jenis Kelamin</div>
+                                </div>
+                                <div class="chart-box">
+                                    <canvas id="chartJurusan"></canvas>
+                                    <div class="text-center mt-2 small fw-bold">Grafik Data Siswa Berdasarkan Kompetensi Keahlian</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Kanan: Dashboard Panel -->
+                    <div class="dashboard-right">
+                        <div class="db-right-top">
+                            <div class="d-flex justify-content-between mb-3 align-items-center">
+                                <span class="fw-bold small text-muted">Desain Komunikasi Visual (DKV)</span>
+                                <i class="fas fa-chevron-down text-primary"></i>
+                            </div>
+                            
+                            <!-- List Kelas (Sample) -->
+                            <div class="class-list-item">
+                                <h6>X DKV 1</h6>
+                                <div class="d-flex justify-content-between text-muted">
+                                    <div>Wali: <span>Burhanudin</span></div>
+                                    <div>L: 38 Pr: 0</div>
+                                </div>
+                            </div>
+                            <div class="class-list-item">
+                                <h6>X DKV 2</h6>
+                                <div class="d-flex justify-content-between text-muted">
+                                    <div>Wali: <span>Siti Aminah</span></div>
+                                    <div>L: 0 Pr: 36</div>
+                                </div>
+                            </div>
+                            <div class="class-list-item border-0">
+                                <h6>XI DKV 1</h6>
+                                <div class="d-flex justify-content-between text-muted">
+                                    <div>Wali: <span>Ahmad</span></div>
+                                    <div>L: 30 Pr: 2</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Dark Panel Bawah -->
+                        <div class="db-right-bottom">
+                            <!-- Decor -->
+                            <div class="moon-decor"></div>
+                            <div class="moon-cover"></div>
+                            
+                            <img src="{{ url_for('static', filename='img/logo_sekolah.png') }}" class="logo-center" alt="Logo">
+                            
+                            <div style="font-size:0.7rem; letter-spacing:1px; margin-bottom:10px; z-index:2;">SEKOLAH MENENGAH KEJURUAN</div>
+                            <h5 class="fw-bold mb-4" style="z-index:2; letter-spacing:2px;">DARUL ABROR</h5>
+
+                            <div class="digital-clock-big" id="jamBig">14:30</div>
+                            <div class="date-big" id="tglBig">Rabu, 19 November 2025</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- === CHILD 2: HALAMAN SISWA LIST (Konten Sebelumnya) === -->
+            <div id="page-siswa" style="display: none;">
+                
+                <!-- Floating Expand Button for Siswa Panel -->
+                <div id="btnExpandSiswa" class="floating-expand-btn" onclick="toggleSiswaPanel()">
+                    <i class="fas fa-chevron-left"></i>
+                </div>
+
+                <div class="siswa-layout">
+                    <!-- Area Tabel -->
+                    <div class="siswa-grid">
+                        <!-- Tabs -->
+                        <div class="d-flex mb-3">
+                            <div class="box-tab">Semua</div>
+                            <div class="box-tab active">Kelas X</div>
+                            <div class="box-tab">Kelas XI</div>
+                            <div class="box-tab">Kelas XII</div>
+                        </div>
+
+                        <!-- Toolbar -->
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="d-flex align-items-center gap-3">
+                                <select class="form-select form-select-sm border-0 bg-light text-primary fw-bold" style="width: 120px;">
+                                    <option>X DKV 1</option>
+                                    <option>X DKV 2</option>
+                                </select>
+                                <span class="small text-muted">Tampilan <b class="text-primary">▼ Daftar</b></span>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button class="btn-custom btn-grey">cetak</button>
+                                <button class="btn-custom btn-green">Ekspor .xlsx</button>
+                                <button class="btn-custom btn-red">Hapus</button>
+                                <a href="{{ url_for('siswa_tambah') }}" class="btn-custom btn-blue">+ Tambah</a>
+                            </div>
+                        </div>
+
+                        <!-- Tabel -->
+                        <div class="table-responsive">
+                            <table class="table-custom">
+                                <thead>
+                                    <tr>
+                                        <th width="3%"><input type="checkbox"></th>
+                                        <th>NIS</th>
+                                        <th>NISN</th>
+                                        <th>Nama</th>
+                                        <th>L/P</th>
+                                        <th>Panggilan</th>
+                                        <th>Tempat Lahir</th>
+                                        <th>Tanggal Lahir</th>
+                                        <th>Domisili</th>
+                                        <th class="text-end">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for s in siswa %}
+                                    <tr onclick="selectRow(this, {{ s.id }})">
+                                        <td><input type="checkbox"></td>
+                                        <td>{{ s.nis }}</td>
+                                        <td>{{ s.nisn }}</td>
+                                        <td class="fw-bold">{{ s.nama_lengkap }}</td>
+                                        <td>{{ s.jenis_kelamin }}</td>
+                                        <td>{{ s.nama_panggilan }}</td>
+                                        <td>{{ s.tempat_lahir }}</td>
+                                        <td>{{ s.tanggal_lahir }}</td>
+                                        <td>{{ s.domisili }}</td>
+                                        <td class="text-end">
+                                            <i class="far fa-eye text-primary mx-1"></i>
+                                            <i class="far fa-edit text-warning mx-1"></i>
+                                            <i class="fas fa-trash-alt text-danger mx-1"></i>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Footer -->
+                        <div class="d-flex justify-content-between mt-3 text-muted small">
+                            <div>Laki-Laki: <b class="text-primary">{{ stats.L }}</b> Perempuan: <b class="text-primary">{{ stats.P }}</b></div>
+                            <div>Total {{ stats.total }} anak</div>
+                        </div>
+                    </div>
+
+                    <!-- Panel Kanan Siswa (Preview) -->
+                    <div class="siswa-right-panel" id="siswaPanel">
+                        <div class="w-100 text-start mb-2">
+                            <button onclick="toggleSiswaPanel()" class="btn btn-sm btn-light"><i class="fas fa-chevron-right"></i></button>
+                        </div>
+                        
+                        <h6 class="fw-bold mb-0 text-center" id="p_nama">Pilih Siswa</h6>
+                        <div class="text-primary small mb-3 text-center" id="p_nis">...</div>
+
+                        <div class="bg-light border rounded p-2 mb-2 d-flex justify-content-center align-items-center" style="width:100%; aspect-ratio:2/3; overflow:hidden;">
+                            <img id="p_foto" src="{{ url_for('static', filename='img/default_user.png') }}" style="width:100%; height:100%; object-fit:cover;">
+                        </div>
+                        <small class="text-end w-100 d-block text-muted mb-3" style="font-size:0.7rem;">Pasphoto saat masuk <i class="fas fa-external-link-alt"></i></small>
+
+                        <div class="bg-light border rounded p-2 mb-2 d-flex justify-content-center align-items-center" style="width:100%; aspect-ratio:2/3; color:#ccc;">
+                            <i class="fas fa-user fa-3x"></i>
+                        </div>
+                        <small class="text-end w-100 d-block text-muted" style="font-size:0.7rem;">Pasphoto saat keluar <i class="fas fa-external-link-alt"></i></small>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Script JS -->
+    <script>
+        // --- 1. CLOCK LOGIC (Header & Beranda) ---
+        function updateClock() {
+            const now = new Date();
+            // Header
+            document.getElementById('jamHeader').innerText = now.toLocaleTimeString('en-GB', {hour12: false}).replace(/:/g, '.');
+            document.getElementById('tanggalHeader').innerText = now.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            
+            // Beranda Big Clock
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            document.getElementById('jamBig').innerText = hours + ":" + minutes;
+            document.getElementById('tglBig').innerText = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // --- 2. PAGE NAVIGATION (SPA Feel) ---
+        function showPage(pageId) {
+            const beranda = document.getElementById('page-beranda');
+            const siswa = document.getElementById('page-siswa');
+            const breadcrumb = document.getElementById('breadcrumb');
+            const menuBeranda = document.getElementById('menuBeranda');
+            const menuSiswa = document.getElementById('menuSiswa');
+
+            if (pageId === 'beranda') {
+                beranda.style.display = 'block';
+                siswa.style.display = 'none';
+                breadcrumb.innerHTML = 'Buku Induk / <span>Pengaturan</span>';
+                
+                menuBeranda.classList.add('active-menu');
+                menuBeranda.style.background = '#0d6efd';
+                menuBeranda.style.color = 'white';
+                
+                menuSiswa.classList.remove('active-menu');
+                menuSiswa.style.background = 'white';
+                menuSiswa.style.color = '#6c757d';
+            } else {
+                beranda.style.display = 'none';
+                siswa.style.display = 'block';
+                breadcrumb.innerHTML = 'Buku Induk / Siswa / Aktif / DKV / <span>Kelas X</span>';
+
+                menuSiswa.classList.add('active-menu');
+                menuSiswa.style.background = '#0d6efd';
+                menuSiswa.style.color = 'white';
+
+                menuBeranda.classList.remove('active-menu');
+                menuBeranda.style.background = 'white';
+                menuBeranda.style.color = '#6c757d';
+            }
+        }
+
+        // --- 3. SISWA PANEL TOGGLE ---
+        function toggleSiswaPanel() {
+            const panel = document.getElementById('siswaPanel');
+            const btn = document.getElementById('btnExpandSiswa');
+            
+            if (panel.classList.contains('hidden')) {
+                panel.classList.remove('hidden');
+                btn.style.display = 'none';
+            } else {
+                panel.classList.add('hidden');
+                setTimeout(() => { btn.style.display = 'flex'; }, 300);
+            }
+        }
+
+        function toggleSubmenu(id) {
+            const el = document.getElementById(id);
+            if(el.style.display === 'block') el.style.display = 'none';
+            else el.style.display = 'block';
+        }
+
+        // --- 4. PREVIEW LOGIC SISWA ---
+        function selectRow(row, id) {
+            document.querySelectorAll('tr').forEach(tr => tr.classList.remove('selected'));
+            row.classList.add('selected');
+
+            // Open panel if hidden
+            const panel = document.getElementById('siswaPanel');
+            if(panel.classList.contains('hidden')) toggleSiswaPanel();
+
+            fetch(`/siswa/detail/${id}`)
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('p_nama').innerText = "'" + data.nama + "'";
+                document.getElementById('p_nis').innerText = data.nis;
+                const img = document.getElementById('p_foto');
+                if(data.foto) img.src = "/static/uploads/" + data.foto;
+                else img.src = "{{ url_for('static', filename='img/default_user.png') }}";
+            });
+        }
+
+        // --- 5. CHARTS (Beranda) ---
+        // Setup ChartJS
+        const ctxGender = document.getElementById('chartGender');
+        const ctxJurusan = document.getElementById('chartJurusan');
+
+        if(ctxGender) {
+            new Chart(ctxGender, {
+                type: 'pie',
+                data: {
+                    labels: ['Laki-laki (70,1%)', 'Perempuan (29,9%)'],
+                    datasets: [{
+                        data: [1275, 544],
+                        backgroundColor: ['#009efb', '#e63737'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: {size: 10} } } }
+                }
+            });
+        }
+
+        if(ctxJurusan) {
+            new Chart(ctxJurusan, {
+                type: 'pie',
+                data: {
+                    labels: ['DKV', 'TKJ', 'AKL', 'RPL'],
+                    datasets: [{
+                        data: [402, 199, 402, 200],
+                        backgroundColor: ['#512da8', '#0288d1', '#fbc02d', '#d32f2f'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: {size: 9} } } }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
