@@ -1,122 +1,272 @@
-<!DOCTYPE html><html lang="id">
+<!DOCTYPE html>
+<html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Web Code Runner</title>
-  <style>
-    * { box-sizing: border-box; }
-    body { margin:0; font-family: system-ui, Arial, sans-serif; height:100vh; display:flex; flex-direction:column; }
-    header {
-      background:#1e293b; color:#fff; padding:8px 12px; display:flex; gap:8px; align-items:center;
-    }
-    header button, header select {
-      padding:6px 10px; border-radius:6px; border:none; cursor:pointer;
-    }
-    header button { background:#38bdf8; }
-    header button.secondary { background:#64748b; color:#fff; }
-    main { flex:1; display:flex; overflow:hidden; }
-    .editor {
-      flex:1; display:flex; flex-direction:column; border-right:2px solid #e5e7eb;
-    }
-    .tabs { display:flex; background:#f1f5f9; }
-    .tabs button {
-      flex:1; padding:6px; border:none; background:#e2e8f0; cursor:pointer;
-    }
-    .tabs button.active { background:#fff; font-weight:bold; }
-    textarea {
-      flex:1; width:100%; border:none; resize:none; padding:10px; font-family: monospace;
-    }
-    .snippets {
-      height:120px; background:#0f172a; color:#e5e7eb; padding:6px; overflow:auto; resize:vertical;
-    }
-    .snippet {
-      display:inline-block; background:#334155; margin:4px; padding:4px 6px; border-radius:4px; cursor:pointer;
-    }
-    .preview {
-      flex:1; display:flex; flex-direction:column;
-    }
-    .preview-toolbar {
-      background:#f8fafc; padding:6px; display:flex; gap:6px; align-items:center;
-    }
-    .preview iframe {
-      flex:1; border:none; width:100%;
-    }
-    footer {
-      background:#f1f5f9; padding:6px; display:flex; gap:8px; overflow-x:auto;
-    }
-    .history-item {
-      background:#e2e8f0; padding:4px 8px; border-radius:4px; cursor:pointer;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Putar Musik & Video Lokal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+        body {
+            padding: 2rem;
+            background-color: #1a1a1a;
+            color: white;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 3rem;
+            color: #00e5ff;
+        }
+        .sections {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+        .section {
+            background-color: #2d2d2d;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 229, 255, 0.2);
+        }
+        h2 {
+            margin-bottom: 1.5rem;
+            color: #00e5ff;
+            border-bottom: 2px solid #00e5ff;
+            padding-bottom: 0.5rem;
+        }
+        .file-input {
+            margin-bottom: 1.5rem;
+            padding: 0.8rem;
+            background-color: #3d3d3d;
+            border-radius: 5px;
+            cursor: pointer;
+            display: inline-block;
+        }
+        .file-input input {
+            display: none;
+        }
+        .player {
+            margin-bottom: 1rem;
+        }
+        /* Video Zoom & Drag Style */
+        .video-container {
+            position: relative;
+            width: 100%;
+            height: 300px;
+            overflow: hidden;
+            border-radius: 10px;
+            background-color: black;
+        }
+        #videoPlayer {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            min-width: 100%;
+            min-height: 100%;
+            cursor: grab;
+        }
+        #videoPlayer:active {
+            cursor: grabbing;
+        }
+        .zoom-controls {
+            margin-top: 1rem;
+            display: flex;
+            gap: 1rem;
+        }
+        .btn {
+            padding: 0.8rem 1.5rem;
+            background-color: #00e5ff;
+            color: #1a1a1a;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .btn:hover {
+            background-color: #00b8cc;
+        }
+        .status {
+            margin-top: 1rem;
+            color: #cccccc;
+            font-size: 0.9rem;
+        }
+
+        /* Responsif */
+        @media (max-width: 768px) {
+            .sections {
+                grid-template-columns: 1fr;
+            }
+            .video-container {
+                height: 200px;
+            }
+        }
+    </style>
 </head>
 <body>
-<header>
-  <button onclick="runCode()">▶ Run / Preview</button>
-  <button class="secondary" onclick="saveProject()">💾 Save</button>
-  <button class="secondary" onclick="clearEditor()">🗑 Clear</button>
-  <label style="color:white">View:</label>
-  <select onchange="setView(this.value)">
-    <option value="100%">Desktop</option>
-    <option value="768px">Tablet</option>
-    <option value="375px">Mobile</option>
-  </select>
-  <input type="file" multiple onchange="uploadFiles(event)" />
-</header><main>
-  <div class="editor">
-    <div class="tabs">
-      <button class="active" onclick="switchTab('html')">HTML</button>
-      <button onclick="switchTab('css')">CSS</button>
-      <button onclick="switchTab('js')">JS</button>
+    <div class="container">
+        <h1>Aplikasi Putar Media Lokal</h1>
+
+        <div class="sections">
+            <!-- Bagian Musik -->
+            <div class="section">
+                <h2>Putar Musik</h2>
+                <div class="file-input">
+                    <label for="musicFile">Pilih File Musik (.mp3, .wav)</label>
+                    <input type="file" id="musicFile" accept="audio/mp3,audio/wav">
+                </div>
+                <div class="player">
+                    <audio id="musicPlayer" controls>Browsermu tidak mendukung pemutar audio.
+                </div>
+                <div class="status" id="musicStatus">Belum ada file yang dipilih</div>
+            </div>
+
+            <!-- Bagian Video -->
+            <div class="section">
+                <h2>Putar Video (Zoom & Geser)</h2>
+                <div class="file-input">
+                    <label for="videoFile">Pilih File Video (.mp4, .webm)</label>
+                    <input type="file" id="videoFile" accept="video/mp4,video/webm">
+                </div>
+                <div class="video-container" id="videoContainer">
+                    <video id="videoPlayer" controls>Browsermu tidak mendukung pemutar video.</video>
+                </div>
+                <div class="zoom-controls">
+                    <button class="btn" id="zoomIn">Perbesar (+)</button>
+                    <button class="btn" id="zoomOut">Perkecil (-)</button>
+                    <button class="btn" id="resetZoom">Reset Zoom</button>
+                </div>
+                <div class="status" id="videoStatus">Belum ada file yang dipilih</div>
+            </div>
+        </div>
     </div>
-    <textarea id="html" placeholder="Tulis HTML di sini"></textarea>
-    <textarea id="css" style="display:none" placeholder="Tulis CSS di sini"></textarea>
-    <textarea id="js" style="display:none" placeholder="Tulis JavaScript di sini"></textarea>
-    <div class="snippets" id="snippets">
-      <div class="snippet" onclick="insertSnippet('<div></div>')">&lt;div&gt;</div>
-      <div class="snippet" onclick="insertSnippet('<p></p>')">&lt;p&gt;</div>
-      <div class="snippet" onclick="insertSnippet('console.log()')">console.log()</div>
-      <div class="snippet" onclick="insertSnippet('display:flex;')">flex</div>
-    </div>
-  </div>
-  <div class="preview">
-    <div class="preview-toolbar">Live Preview</div>
-    <iframe id="preview"></iframe>
-  </div>
-</main><footer id="history"></footer><script>
-  let currentTab = 'html';
 
-  function switchTab(tab) {
-    ['html','css','js'].forEach(t => {
-      document.getElementById(t).style.display = t === tab ? 'block' : 'none';
-    });
-    document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
-    event.target.classList.add('active');
-    currentTab = tab;
-  }
+    <script>
+        // Variabel untuk video zoom & drag
+        let zoomLevel = 1;
+        let isDragging = false;
+        let startX, startY, translateX = 0, translateY = 0;
 
-  function runCode() {
-    const html = document.getElementById('html').value;
-    const css = `<style>${document.getElementById('css').value}</style>`;const js = `<script>${document.getElementById('js').value}<\/script>`;
-const iframe = document.getElementById('preview');
-iframe.srcdoc = html + css + js;
+        // Elemen Musik
+        const musicFile = document.getElementById('musicFile');
+        const musicPlayer = document.getElementById('musicPlayer');
+        const musicStatus = document.getElementById('musicStatus');
 
-}
+        // Elemen Video
+        const videoFile = document.getElementById('videoFile');
+        const videoPlayer = document.getElementById('videoPlayer');
+        const videoContainer = document.getElementById('videoContainer');
+        const zoomInBtn = document.getElementById('zoomIn');
+        const zoomOutBtn = document.getElementById('zoomOut');
+        const resetZoomBtn = document.getElementById('resetZoom');
+        const videoStatus = document.getElementById('videoStatus');
 
-function saveProject() { const data = { html: html.value, css: css.value, js: js.value, time: new Date().toLocaleString() }; let history = JSON.parse(localStorage.getItem('history') || '[]'); history.push(data); localStorage.setItem('history', JSON.stringify(history)); renderHistory(); }
+        // Fungsi Musik
+        musicFile.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const fileURL = URL.createObjectURL(file);
+                musicPlayer.src = fileURL;
+                musicStatus.textContent = `Memutar: ${file.name}`;
+            } else {
+                musicStatus.textContent = 'Belum ada file yang dipilih';
+            }
+        });
 
-function renderHistory() { const container = document.getElementById('history'); container.innerHTML = ''; let history = JSON.parse(localStorage.getItem('history') || '[]'); history.forEach((item, i) => { const div = document.createElement('div'); div.className = 'history-item'; div.textContent = item.time; div.onclick = () => loadHistory(i); container.appendChild(div); }); }
+        // Fungsi Video: Pilih File
+        videoFile.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const fileURL = URL.createObjectURL(file);
+                videoPlayer.src = fileURL;
+                videoStatus.textContent = `Memutar: ${file.name}`;
+                resetZoom(); // Reset zoom saat pilih file baru
+            } else {
+                videoStatus.textContent = 'Belum ada file yang dipilih';
+            }
+        });
 
-function loadHistory(i) { let history = JSON.parse(localStorage.getItem('history')); html.value = history[i].html; css.value = history[i].css; js.value = history[i].js; runCode(); }
+        // Fungsi Video: Zoom
+        function updateZoom() {
+            videoPlayer.style.transform = `translate(-50%, -50%) scale(${zoomLevel}) translate(${translateX}px, ${translateY}px)`;
+        }
 
-function clearEditor() { html.value = css.value = js.value = ''; }
+        zoomInBtn.addEventListener('click', () => {
+            zoomLevel += 0.2;
+            if (zoomLevel > 3) zoomLevel = 3; // Batas maksimal zoom
+            updateZoom();
+        });
 
-function insertSnippet(code) { const el = document.getElementById(currentTab); el.setRangeText(code, el.selectionStart, el.selectionEnd, 'end'); el.focus(); }
+        zoomOutBtn.addEventListener('click', () => {
+            zoomLevel -= 0.2;
+            if (zoomLevel < 1) zoomLevel = 1; // Batas minimal zoom (asli)
+            updateZoom();
+        });
 
-function setView(width) { const iframe = document.getElementById('preview'); iframe.style.width = width; iframe.style.margin = '0 auto'; }
+        function resetZoom() {
+            zoomLevel = 1;
+            translateX = 0;
+            translateY = 0;
+            updateZoom();
+        }
 
-function uploadFiles(e) { const files = e.target.files; for (const f of files) { const reader = new FileReader(); reader.onload = () => { if (f.name.endsWith('.html')) html.value += '\n' + reader.result; if (f.name.endsWith('.css')) css.value += '\n' + reader.result; if (f.name.endsWith('.js')) js.value += '\n' + reader.result; }; reader.readAsText(f); } }
+        resetZoomBtn.addEventListener('click', resetZoom);
 
-renderHistory(); </script>
+        // Fungsi Video: Geser Saat Dizoom
+        videoPlayer.addEventListener('mousedown', (e) => {
+            if (zoomLevel > 1) { // Hanya bisa geser jika sudah dizoom
+                isDragging = true;
+                startX = e.clientX - translateX;
+                startY = e.clientY - translateY;
+                videoPlayer.style.cursor = 'grabbing';
+            }
+        });
 
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            e.preventDefault();
+            translateX = e.clientX - startX;
+            translateY = e.clientY - startY;
+            updateZoom();
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+            videoPlayer.style.cursor = 'grab';
+        });
+
+        // Untuk sentuhan (mobile)
+        videoPlayer.addEventListener('touchstart', (e) => {
+            if (zoomLevel > 1) {
+                isDragging = true;
+                const touch = e.touches[0];
+                startX = touch.clientX - translateX;
+                startY = touch.clientY - translateY;
+            }
+        });
+
+        document.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            e.preventDefault();
+            const touch = e.touches[0];
+            translateX = touch.clientX - startX;
+            translateY = touch.clientY - startY;
+            updateZoom();
+        });
+
+        document.addEventListener('touchend', () => {
+            isDragging = false;
+        });
+    </script>
 </body>
 </html>
