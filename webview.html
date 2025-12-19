@@ -1,0 +1,122 @@
+<!DOCTYPE html><html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Web Code Runner</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui, Arial, sans-serif; height:100vh; display:flex; flex-direction:column; }
+    header {
+      background:#1e293b; color:#fff; padding:8px 12px; display:flex; gap:8px; align-items:center;
+    }
+    header button, header select {
+      padding:6px 10px; border-radius:6px; border:none; cursor:pointer;
+    }
+    header button { background:#38bdf8; }
+    header button.secondary { background:#64748b; color:#fff; }
+    main { flex:1; display:flex; overflow:hidden; }
+    .editor {
+      flex:1; display:flex; flex-direction:column; border-right:2px solid #e5e7eb;
+    }
+    .tabs { display:flex; background:#f1f5f9; }
+    .tabs button {
+      flex:1; padding:6px; border:none; background:#e2e8f0; cursor:pointer;
+    }
+    .tabs button.active { background:#fff; font-weight:bold; }
+    textarea {
+      flex:1; width:100%; border:none; resize:none; padding:10px; font-family: monospace;
+    }
+    .snippets {
+      height:120px; background:#0f172a; color:#e5e7eb; padding:6px; overflow:auto; resize:vertical;
+    }
+    .snippet {
+      display:inline-block; background:#334155; margin:4px; padding:4px 6px; border-radius:4px; cursor:pointer;
+    }
+    .preview {
+      flex:1; display:flex; flex-direction:column;
+    }
+    .preview-toolbar {
+      background:#f8fafc; padding:6px; display:flex; gap:6px; align-items:center;
+    }
+    .preview iframe {
+      flex:1; border:none; width:100%;
+    }
+    footer {
+      background:#f1f5f9; padding:6px; display:flex; gap:8px; overflow-x:auto;
+    }
+    .history-item {
+      background:#e2e8f0; padding:4px 8px; border-radius:4px; cursor:pointer;
+    }
+  </style>
+</head>
+<body>
+<header>
+  <button onclick="runCode()">▶ Run / Preview</button>
+  <button class="secondary" onclick="saveProject()">💾 Save</button>
+  <button class="secondary" onclick="clearEditor()">🗑 Clear</button>
+  <label style="color:white">View:</label>
+  <select onchange="setView(this.value)">
+    <option value="100%">Desktop</option>
+    <option value="768px">Tablet</option>
+    <option value="375px">Mobile</option>
+  </select>
+  <input type="file" multiple onchange="uploadFiles(event)" />
+</header><main>
+  <div class="editor">
+    <div class="tabs">
+      <button class="active" onclick="switchTab('html')">HTML</button>
+      <button onclick="switchTab('css')">CSS</button>
+      <button onclick="switchTab('js')">JS</button>
+    </div>
+    <textarea id="html" placeholder="Tulis HTML di sini"></textarea>
+    <textarea id="css" style="display:none" placeholder="Tulis CSS di sini"></textarea>
+    <textarea id="js" style="display:none" placeholder="Tulis JavaScript di sini"></textarea>
+    <div class="snippets" id="snippets">
+      <div class="snippet" onclick="insertSnippet('<div></div>')">&lt;div&gt;</div>
+      <div class="snippet" onclick="insertSnippet('<p></p>')">&lt;p&gt;</div>
+      <div class="snippet" onclick="insertSnippet('console.log()')">console.log()</div>
+      <div class="snippet" onclick="insertSnippet('display:flex;')">flex</div>
+    </div>
+  </div>
+  <div class="preview">
+    <div class="preview-toolbar">Live Preview</div>
+    <iframe id="preview"></iframe>
+  </div>
+</main><footer id="history"></footer><script>
+  let currentTab = 'html';
+
+  function switchTab(tab) {
+    ['html','css','js'].forEach(t => {
+      document.getElementById(t).style.display = t === tab ? 'block' : 'none';
+    });
+    document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+    currentTab = tab;
+  }
+
+  function runCode() {
+    const html = document.getElementById('html').value;
+    const css = `<style>${document.getElementById('css').value}</style>`;const js = `<script>${document.getElementById('js').value}<\/script>`;
+const iframe = document.getElementById('preview');
+iframe.srcdoc = html + css + js;
+
+}
+
+function saveProject() { const data = { html: html.value, css: css.value, js: js.value, time: new Date().toLocaleString() }; let history = JSON.parse(localStorage.getItem('history') || '[]'); history.push(data); localStorage.setItem('history', JSON.stringify(history)); renderHistory(); }
+
+function renderHistory() { const container = document.getElementById('history'); container.innerHTML = ''; let history = JSON.parse(localStorage.getItem('history') || '[]'); history.forEach((item, i) => { const div = document.createElement('div'); div.className = 'history-item'; div.textContent = item.time; div.onclick = () => loadHistory(i); container.appendChild(div); }); }
+
+function loadHistory(i) { let history = JSON.parse(localStorage.getItem('history')); html.value = history[i].html; css.value = history[i].css; js.value = history[i].js; runCode(); }
+
+function clearEditor() { html.value = css.value = js.value = ''; }
+
+function insertSnippet(code) { const el = document.getElementById(currentTab); el.setRangeText(code, el.selectionStart, el.selectionEnd, 'end'); el.focus(); }
+
+function setView(width) { const iframe = document.getElementById('preview'); iframe.style.width = width; iframe.style.margin = '0 auto'; }
+
+function uploadFiles(e) { const files = e.target.files; for (const f of files) { const reader = new FileReader(); reader.onload = () => { if (f.name.endsWith('.html')) html.value += '\n' + reader.result; if (f.name.endsWith('.css')) css.value += '\n' + reader.result; if (f.name.endsWith('.js')) js.value += '\n' + reader.result; }; reader.readAsText(f); } }
+
+renderHistory(); </script>
+
+</body>
+</html>
